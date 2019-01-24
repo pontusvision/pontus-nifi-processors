@@ -1,0 +1,49 @@
+{
+  "colMetaData": [
+    {
+      "colName": "dept_no",
+      "primaryKeyName": "PRIMARY",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 4,
+      "ordinalPos": 1,
+      "defVal": "",
+      "colSize": 4,
+      "vals": [
+        "d009",
+        "d005",
+        "d002",
+        "d003",
+        "d001"
+      ]
+    },
+    {
+      "colName": "dept_name",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 40,
+      "ordinalPos": 2,
+      "defVal": "",
+      "colSize": 40,
+      "vals": [
+        "Customer Service",
+        "Development",
+        "Finance",
+        "Human Resources",
+        "Marketing"
+      ]
+    }
+  ],
+  "tableCatalog": "employees",
+  "tableName": "departments",
+  "fqn": "employees.departments",
+  "tableType": "TABLE",
+  "tableRemarks": ""
+}

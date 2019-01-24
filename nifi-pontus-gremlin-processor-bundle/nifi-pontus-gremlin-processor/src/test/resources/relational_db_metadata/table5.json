@@ -1,0 +1,89 @@
+{
+  "colMetaData": [
+    {
+      "colName": "emp_no",
+      "primaryKeyName": "salaries.emp_no",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 1,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "10001",
+        "10001",
+        "10001",
+        "10001",
+        "10001"
+      ]
+    },
+    {
+      "colName": "salary",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 2,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "60117",
+        "62102",
+        "66074",
+        "66596",
+        "66961"
+      ]
+    },
+    {
+      "colName": "from_date",
+      "primaryKeyName": "PRIMARY",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 3,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "1986-06-26",
+        "1987-06-26",
+        "1988-06-25",
+        "1989-06-25",
+        "1990-06-25"
+      ]
+    },
+    {
+      "colName": "to_date",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 4,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "1987-06-26",
+        "1988-06-25",
+        "1989-06-25",
+        "1990-06-25",
+        "1991-06-25"
+      ]
+    }
+  ],
+  "tableCatalog": "employees",
+  "tableName": "salaries",
+  "fqn": "employees.salaries",
+  "tableType": "TABLE",
+  "tableRemarks": ""
+}
