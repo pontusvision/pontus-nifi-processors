@@ -10,6 +10,7 @@ CURDIR=`pwd`
 cd $DIR
 
 git pull; 
+git pull --recurse-submodules; 
 mvn -Dmaven.test.skip=true -DskipTests=true  clean install ; 
 #scp -P 12222 */*/target/*.nar nifi-pontus-elastic-2.x-processor-bundle/nifi-pontus-elastic-2.x-processor/target/nifi-pontus-elastic-2.x-processor-1.0.jar root@localhost:/opt/pontus;
 #scp -P 12222 */*/target/*gremlin*.nar */*/target/*service*.nar root@localhost:/opt/pontus;
