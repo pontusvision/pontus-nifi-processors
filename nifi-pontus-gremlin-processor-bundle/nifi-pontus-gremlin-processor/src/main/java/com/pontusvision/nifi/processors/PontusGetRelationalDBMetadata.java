@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.StringUtils;
 
 import javax.json.Json;
@@ -66,7 +67,8 @@ import java.util.stream.Stream;
         "Contains the type of the database table from the connection. Typical types are \"TABLE\", \"VIEW\", \"SYSTEM TABLE\", "
             + "\"GLOBAL TEMPORARY\", \"LOCAL TEMPORARY\", \"ALIAS\", \"SYNONYM\""),
     @WritesAttribute(attribute = "pg_rdb_table_remarks", description = "Contains the name of a database table from the connection"),
-    @WritesAttribute(attribute = "pg_rdb_table_count", description = "Contains the number of rows in the table") }) @Stateful(scopes = {
+    @WritesAttribute(attribute = "pg_rdb_table_count", description = "Contains the number of rows in the table") })
+   @Stateful(scopes = {
     Scope.CLUSTER }, description = "After performing a listing of tables, the timestamp of the query is stored. "
     + "This allows the Processor to not re-list tables the next time that the Processor is run. Specifying the refresh interval in the processor properties will "
     + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
@@ -76,14 +78,14 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
 {
 
   // Attribute names
-  public static final String DB_TABLE_NAME     = "pg_rdb_table_name";
-  public static final String DB_TABLE_CATALOG  = "pg_rdb_table_catalog";
-  public static final String DB_TABLE_SCHEMA   = "pg_rdb_table_schema";
+  public static final String DB_TABLE_NAME = "pg_rdb_table_name";
+  public static final String DB_TABLE_CATALOG = "pg_rdb_table_catalog";
+  public static final String DB_TABLE_SCHEMA = "pg_rdb_table_schema";
   public static final String DB_TABLE_FULLNAME = "pg_rdb_table_fullname";
-  public static final String DB_TABLE_TYPE     = "pg_rdb_table_type";
-  public static final String DB_TABLE_REMARKS  = "pg_rdb_table_remarks";
-  public static final String DB_TABLE_COUNT    = "pg_rdb_table_count";
-  public static final String DB_COL_METADATA   = "pg_rdb_col_metadata";
+  public static final String DB_TABLE_TYPE = "pg_rdb_table_type";
+  public static final String DB_TABLE_REMARKS = "pg_rdb_table_remarks";
+  public static final String DB_TABLE_COUNT = "pg_rdb_table_count";
+  public static final String DB_COL_METADATA = "pg_rdb_col_metadata";
 
   // Relationships
   public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -146,26 +148,13 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
               + "Clear State manually.").required(true).defaultValue("0 sec")
       .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).build();
 
-  private static final List<PropertyDescriptor> propertyDescriptors;
-  private static final Set<Relationship> relationships;
+  protected static Set<Relationship> relationships;
 
   /*
-   * Will ensure that the list of property descriptors is build only once.
    * Will also create a Set of relationships
    */
   static
   {
-    List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-    _propertyDescriptors.add(DBCP_SERVICE);
-    _propertyDescriptors.add(CATALOG);
-    _propertyDescriptors.add(SCHEMA_PATTERN);
-    _propertyDescriptors.add(TABLE_NAME_PATTERN);
-    _propertyDescriptors.add(COLUMN_NAME_PATTERN);
-
-    _propertyDescriptors.add(TABLE_TYPES);
-    _propertyDescriptors.add(INCLUDE_COUNT);
-    _propertyDescriptors.add(REFRESH_INTERVAL);
-    propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
@@ -174,7 +163,19 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
 
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
-    return propertyDescriptors;
+    List<PropertyDescriptor> properties = new ArrayList<>();
+    properties.add(DBCP_SERVICE);
+    properties.add(CATALOG);
+    properties.add(SCHEMA_PATTERN);
+    properties.add(TABLE_NAME_PATTERN);
+    properties.add(COLUMN_NAME_PATTERN);
+
+    properties.add(TABLE_TYPES);
+    properties.add(INCLUDE_COUNT);
+    properties.add(REFRESH_INTERVAL);
+    properties.add(NUM_ROWS);
+    return Collections.unmodifiableList(properties);
+
   }
 
   @Override public Set<Relationship> getRelationships()
@@ -182,10 +183,20 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
     return relationships;
   }
 
+  public Connection getConnection(ProcessContext context, FlowFile flowFile)
+      throws SQLException, InitializationException
+  {
+    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+    return dbcpService.getConnection();
+  }
+
+  public String getStateMapPropertiesKey(ProcessContext context){
+    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+    return dbcpService.toString();
+  }
   @Override public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException
   {
     final ComponentLog logger = getLogger();
-    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
     final String catalog = context.getProperty(CATALOG).getValue();
     final String schemaPattern = context.getProperty(SCHEMA_PATTERN).getValue();
     final String tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).getValue();
@@ -211,7 +222,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
       throw new ProcessException(ioe);
     }
 
-    try (final Connection con = dbcpService.getConnection())
+    try (final Connection con = getConnection(context,session.get()))
     {
 
       DatabaseMetaData dbMetaData = con.getMetaData();
@@ -297,10 +308,10 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
            *  <LI><B>(6)FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>)
            *  <LI><B>(7)FKTABLE_NAME</B> String {@code =>} foreign key table name
            *  <LI><B>(8)FKCOLUMN_NAME</B> String {@code =>} foreign key column name
-           *  <LI><B>(1)KEY_SEQ</B> short {@code =>} sequence number within a foreign key( a value
+           *  <LI><B>(9)KEY_SEQ</B> short {@code =>} sequence number within a foreign key( a value
            *  of 1 represents the first column of the foreign key, a value of 2 would
            *  represent the second column within the foreign key).
-           *  <LI><B>(1)UPDATE_RULE</B> short {@code =>} What happens to a
+           *  <LI><B>(10)UPDATE_RULE</B> short {@code =>} What happens to a
            *       foreign key when the primary key is updated:
            *      <UL>
            *      <LI> importedNoAction - do not allow update of primary
@@ -314,7 +325,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
            *      <LI> importedKeyRestrict - same as importedKeyNoAction
            *                                 (for ODBC 2.x compatibility)
            *      </UL>
-           *  <LI><B>(1)DELETE_RULE</B> short {@code =>} What happens to
+           *  <LI><B>(11)DELETE_RULE</B> short {@code =>} What happens to
            *      the foreign key when primary is deleted.
            *      <UL>
            *      <LI> importedKeyNoAction - do not allow delete of primary
@@ -327,9 +338,9 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
            *      <LI> importedKeySetDefault - change imported key to default if
            *               its primary key has been deleted
            *      </UL>
-           *  <LI><B>(1)FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>)
-           *  <LI><B>(1)PK_NAME</B> String {@code =>} primary key name (may be <code>null</code>)
-           *  <LI><B>(1)DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key
+           *  <LI><B>(12)FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>)
+           *  <LI><B>(13)PK_NAME</B> String {@code =>} primary key name (may be <code>null</code>)
+           *  <LI><B>(14)DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key
            *      constraints be deferred until commit
            *      <UL>
            *      <LI> importedKeyInitiallyDeferred - see SQL92 for definition
@@ -349,7 +360,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
             String val = Stream.of(fkTableName, fkColName).filter(segment -> !StringUtils.isEmpty(segment))
                 .collect(Collectors.joining("."));
 
-            primaryKeys.put(colName, val);
+            foreignKeys.put(colName, val);
           }
           FlowFile flowFile = session.create();
 
@@ -369,6 +380,8 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
             catch (SQLException se)
             {
               logger.error("Couldn't get row count for {}", new Object[] { fqn });
+              logger.error("Got exception",se);
+
               session.remove(flowFile);
               continue;
             }
@@ -392,16 +405,26 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
                 for (int i = 1; i <= colCount; i++)
                 {
                   final String colName = metaData.getColumnName(i);
-                  String val = rowsResult.getObject(i).toString();
-                  JsonArrayBuilder vals = sampleRows.putIfAbsent(colName, Json.createArrayBuilder());
-                  vals.add(val);
+                  Object obj = rowsResult.getObject(i);
+                  if (obj != null)
+                  {
+                    String val = obj.toString();
+                    JsonArrayBuilder vals = sampleRows.putIfAbsent(colName, Json.createArrayBuilder());
+                    if (vals == null)
+                    {
+                      vals = sampleRows.get(colName);
+                    }
+                    logger.info("colName = " + colName + "; val = " + val + "; vals = " + vals);
+                    vals.add(val);
+                  }
                 }
-                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
+//                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
               }
             }
             catch (SQLException se)
             {
-              logger.error("Couldn't get row count for {}", new Object[] { fqn });
+              logger.error("Couldn't get row values for {}", new Object[] { fqn });
+              logger.error("Got exception",se);
               session.remove(flowFile);
               continue;
             }
@@ -482,7 +505,6 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
           JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
 
           JsonArrayBuilder jsonArrayBuilder = Json.createArrayBuilder();
-          jsonBuilder.add("colMetaData", jsonArrayBuilder);
 
           while (colsRs.next())
           {
@@ -494,7 +516,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
             final String primaryKeyName = primaryKeys.get(colName);
             final String foreignKeyName = foreignKeys.get(colName);
 
-//            final int dataType = colsRs.getInt(5);
+            //            final int dataType = colsRs.getInt(5);
             final String typeName = rs.getString(6);
             final int colSize = colsRs.getInt(7);
             final String colRemarks = colsRs.getString(12);
@@ -505,51 +527,49 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
             final String isGenerated = colsRs.getString(24);
             final JsonArrayBuilder vals = numRows == 0 ? null : sampleRows.get(colName);
 
-            colDetail.add("colName", colName)
-                .add("primaryKeyName", primaryKeyName)
-                .add("foreignKeyName",foreignKeyName)
-                .add("typeName",typeName)
-                .add("colRemarks",colRemarks)
-                .add("isAutoIncr",isAutoIncr)
-                .add("isGenerated",isGenerated)
-                .add("octetLen",octetLen)
-                .add("ordinalPos",ordinalPos)
-                .add("defVal",defVal)
-                .add("colSize",colSize)
-                .add("vals",vals);
+            colDetail.add("colName", colName).add("primaryKeyName", (primaryKeyName != null) ? primaryKeyName : "")
+                .add("foreignKeyName", (foreignKeyName != null) ? foreignKeyName : "")
+                .add("typeName", (typeName!= null)? typeName: "")
+                .add("colRemarks", (colRemarks != null) ? colRemarks : "").add("isAutoIncr", isAutoIncr)
+                .add("isGenerated", isGenerated).add("octetLen", octetLen).add("ordinalPos", ordinalPos)
+                .add("defVal", (defVal != null) ? defVal : "").add("colSize", colSize);
+            if (vals != null)
+            {
+              colDetail.add("vals", vals);
+            }
             jsonArrayBuilder.add(colDetail);
 
             logger.info("Found {}: {}", new Object[] { tableType, fqn });
           }
+          jsonBuilder.add("colMetaData", jsonArrayBuilder);
 
           if (tableCatalog != null)
           {
-            jsonBuilder.add("tableCatalog",tableCatalog);
+            jsonBuilder.add("tableCatalog", tableCatalog);
             flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
           }
           if (tableSchema != null)
           {
-            jsonBuilder.add("tableSchema",tableSchema);
+            jsonBuilder.add("tableSchema", tableSchema);
 
             flowFile = session.putAttribute(flowFile, DB_TABLE_SCHEMA, tableSchema);
           }
-          jsonBuilder.add("tableName",tableSchema);
-          jsonBuilder.add("fqn",fqn);
-          jsonBuilder.add("tableType",tableType);
+          jsonBuilder.add("tableName", tableName);
+          jsonBuilder.add("fqn", fqn);
+          jsonBuilder.add("tableType", tableType != null ? tableType: "");
 
           flowFile = session.putAttribute(flowFile, DB_TABLE_NAME, tableName);
           flowFile = session.putAttribute(flowFile, DB_TABLE_FULLNAME, fqn);
           flowFile = session.putAttribute(flowFile, DB_TABLE_TYPE, tableType);
           if (tableRemarks != null)
           {
-            jsonBuilder.add("tableRemarks",tableRemarks);
+            jsonBuilder.add("tableRemarks", tableRemarks);
 
             flowFile = session.putAttribute(flowFile, DB_TABLE_REMARKS, tableRemarks);
 
           }
 
-
-          flowFile = session.putAttribute(flowFile, DB_COL_METADATA, jsonBuilder.toString());
+          flowFile = session.putAttribute(flowFile, DB_COL_METADATA, jsonBuilder.build().toString());
 
           String transitUri;
           try
@@ -560,7 +580,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
           {
             transitUri = "<unknown>";
           }
-                  session.getProvenanceReporter().receive(flowFile, transitUri);
+          session.getProvenanceReporter().receive(flowFile, transitUri);
           session.transfer(flowFile, REL_SUCCESS);
 
           stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
@@ -577,7 +597,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
       }
 
     }
-    catch (final SQLException | IOException e)
+    catch (final SQLException | IOException | InitializationException e)
     {
       throw new ProcessException(e);
     }

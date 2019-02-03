@@ -1,0 +1,3 @@
+[submodule "pontus-gdpr-graph"]
+	path = pontus-gdpr-graph
+	url = git@github.com:pontusvision/pontus-gdpr-graph.git

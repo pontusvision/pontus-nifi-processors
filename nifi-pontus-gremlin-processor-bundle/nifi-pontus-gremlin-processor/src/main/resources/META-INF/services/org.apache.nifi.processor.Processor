@@ -6,3 +6,7 @@ com.pontusvision.nifi.processors.CleanCSVHeader
 com.pontusvision.nifi.processors.PontusTinkerPopRemoteClient
 com.pontusvision.nifi.processors.LeakyBucketThrottle
 com.pontusvision.nifi.processors.WaitAndBatch
+com.pontusvision.nifi.processors.PontusGetRelationalDBMetadata
+com.pontusvision.nifi.processors.PontusGetRelationalDBMetadataDirect
+com.pontusvision.nifi.processors.PontusGetRelationalDBCatalogues
+com.pontusvision.nifi.processors.PontusGetRelationalDBCataloguesDirect
