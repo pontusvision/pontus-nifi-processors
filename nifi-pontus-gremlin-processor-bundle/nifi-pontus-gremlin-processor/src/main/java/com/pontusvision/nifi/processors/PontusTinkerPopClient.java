@@ -105,7 +105,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
           "Specifies whether an embedded Pontus Graph server should be used inside nifi. "
               + " If this is set to true, the Tinkerpop Client configuration URI is used to point to the gremlin-server.yml"
               + " file that will configure an embedded server.").required(false)
-      .addValidator(StandardValidators.BOOLEAN_VALIDATOR).defaultValue("true")
+      .addValidator(StandardValidators.BOOLEAN_VALIDATOR).defaultValue("false")
       //            .identifiesControllerService(HBaseClientService.class)
       .build();
 
