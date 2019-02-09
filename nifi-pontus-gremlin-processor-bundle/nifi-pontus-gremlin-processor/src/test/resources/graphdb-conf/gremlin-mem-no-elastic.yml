@@ -6,7 +6,7 @@ gremlinPool: 1
 
 channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
 graphs: {
-  graph: target/test-classes/graphdb-conf/janusgraph-inmem.properties
+  graph: target/test-classes/graphdb-conf/janusgraph-inmem-no-elastic.properties
 }
 scriptEngines: {
   gremlin-groovy: {
