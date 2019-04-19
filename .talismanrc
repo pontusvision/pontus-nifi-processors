@@ -1,0 +1,14 @@
+ignoreconfig:
+- filename: nifi-pontus-gremlin-processor-bundle/nifi-pontus-gremlin-processor/src/main/java/com/pontusvision/nifi/processors/PontusGetActiveDirectory.java
+  checksum: 8f3e6da76f438f21d909884a1c777bb757c210e84f9167ddd872b8e2ca4ed9d4
+  ignore_detectors: []
+- filename: nifi-pontus-gremlin-processor-bundle/nifi-pontus-gremlin-processor/src/test/java/com/pontusvision/nifi/processors/PontusGetActiveDirectoryTest.java
+  checksum: adb7dd731e97717c1c4107d553e1dea734db39c61e37dee120f22160b9e093f0
+  ignore_detectors: []
+- filename: nifi-pontus-gremlin-processor-bundle/nifi-pontus-gremlin-processor/src/test/resources/ldap-tests/test-schema.ldiff
+  checksum: 554025a781b8b73ec6e83949eea960dce5387f88324928df9bb8028d9c67146d
+  ignore_detectors: []
+- filename: nifi-pontus-gremlin-processor-bundle/nifi-pontus-gremlin-processor/src/test/resources/ldap-tests/test.ldiff
+  checksum: 946b1edae55484924c81122faf27b81e639d0cc60ce6efe91de6f41fbe090975
+  ignore_detectors: []
+
