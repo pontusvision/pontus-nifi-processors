@@ -33,21 +33,18 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class TestIngestionProcessor
+public class TestIngestionProcessorBulkRequests
 {
 
   private static final String TEST_DATA_RESOURCE_DIR = "csv-data/";
 
   protected static File       DEFAULT_INSTALL_DIR = new File(System.getProperty("java.io.tmpdir"), "data-dir");
-  protected        TestRunner runner;
   protected        TestRunner runnerBr;
-  PontusTinkerPopClient           ptpc;
   PontusTinkerPopClientRecordBulk ptpcBr;
   PropertyDescriptor              embeddedServer;
   PropertyDescriptor              confURI;
   PropertyDescriptor              RECORD_READER;
   PropertyDescriptor              query;
-
 
   protected String loadSchemaQueryStr = "//action\n"
       + "\n"
@@ -63,7 +60,7 @@ public class TestIngestionProcessor
       + "    e.printStackTrace()\n"
       + "}\n"
       + "\n";
-  protected String queryStr =
+  protected String queryStr           =
       "\n" + "\n"
           + "def rulesStr = '''\n"
           + "\n"
@@ -580,6 +577,14 @@ public class TestIngestionProcessor
       + "\t\t   ,\"postProcessor\": \"v.'Person.Full_Name_fuzzy':${it?.trim()}~\"\n"
       + "\t\t   \n"
       + "\t\t  }\n"
+      + "\t\t ,{\n"
+      + "\t\t\t\"name\": \"Person.Last_Name\"\n"
+      + "\t\t   ,\"val\": \"${person}\"\n"
+      + "\t\t   ,\"predicate\": \"textContainsFuzzy\"\n"
+      + "\t\t   ,\"type\":\"[Ljava.lang.String;\"\n"
+      + "\t\t   ,\"excludeFromUpdate\": true\n"
+      + "\t\t   ,\"postProcessor\": \"${it?.toUpperCase()?.trim()}\"\n"
+      + "\t\t  }\n"
       + "\t\t]\n"
       + "\t  }\n"
       + "\t ,{\n"
@@ -773,7 +778,6 @@ public class TestIngestionProcessor
       + "}\n"
       + "sb.toString()";
 
-
   EmbeddedElastic es;
 
   //      final String queryStr = ""
@@ -867,7 +871,7 @@ public class TestIngestionProcessor
 
     }
 
-    com.pontusvision.utils.LocationAddress.parser.getInstance().parseAddress("Rua 25 Andre Tesch");
+    LocationAddress.parser.getInstance().parseAddress("Rua 25 Andre Tesch");
 
   }
 
@@ -916,23 +920,17 @@ public class TestIngestionProcessor
 
     es = runES();
 
-    ptpc = new PontusTinkerPopClient();
-
-
     ptpcBr = new PontusTinkerPopClientRecordBulk();
-
-
-
 
     RECORD_READER = ptpcBr.getPropertyDescriptor("record-reader");
 
-    embeddedServer = ptpc.getPropertyDescriptor("Tinkerpop Embedded Server");
-    confURI = ptpc.getPropertyDescriptor("Tinkerpop Client configuration URI");
-    query = ptpc.getPropertyDescriptor("Tinkerpop Query");
+    embeddedServer = ptpcBr.getPropertyDescriptor("Tinkerpop Embedded Server");
+    confURI = ptpcBr.getPropertyDescriptor("Tinkerpop Client configuration URI");
+    query = ptpcBr.getPropertyDescriptor("Tinkerpop Query");
 
-    System.out.println (String.format(queryStr2,"45.0"));
+    System.out.println(String.format(queryStr2, "45.0"));
 
-    CSVReader service = new org.apache.nifi.csv.CSVReader();
+    CSVReader service = new CSVReader();
 
     Map<String, String> controllerSvcProps = new HashMap<>();
     controllerSvcProps.put("schema-access-strategy", "csv-header-derived");
@@ -941,7 +939,7 @@ public class TestIngestionProcessor
     controllerSvcProps.put("CSV Format", "rfc-4180");
     controllerSvcProps.put("Skip Header Line", "true");
 
-    ClassLoader testClassLoader = TestIngestionProcessor.class.getClassLoader();
+    ClassLoader testClassLoader = TestIngestionProcessorBulkRequests.class.getClassLoader();
     URL         url             = testClassLoader.getResource("graphdb-conf/gremlin-mem.yml");
 
     runnerBr = TestRunners.newTestRunner(ptpcBr);
@@ -959,27 +957,27 @@ public class TestIngestionProcessor
     //    ptpcBr.onPropertyModified(query, "true", queryStr);
     //    ptpcBr.onPropertyModified(RECORD_READER, "", "Demo_CRM_CSVReader");
 
-//    runner = TestRunners.newTestRunner(ptpc);
-//    runner.setValidateExpressionUsage(true);
-//    runner.setProperty(embeddedServer, "true");
-//    runner.setProperty(confURI, url.toURI().toString());
-//    runner.setProperty(query, queryStr);
-//
-//    //    ptpc.onPropertyModified(embeddedServer, "true", "true");
-//    //    ptpc.onPropertyModified(confURI, "", url.toURI().toString());
-//    //    ptpc.onPropertyModified(query, "true", queryStr);
-//
-//    runner.assertValid();
-//    App.settings = Settings.read("target/test-classes/graphdb-conf/gremlin-mem.yml");
-//
-//    App.graph = (JanusGraph) ptpcBr.embeddedServer.getGraphManager().getGraph("graph");
-//
-//    Bindings bindings = new ConcurrentBindings();
-//    bindings.put("graph", App.graph);
-//
-//    ptpcBr.runQuery(bindings, loadSchemaQueryStr);
-//    ptpc.runQuery(bindings, loadSchemaQueryStr);
-//
+    //    runner = TestRunners.newTestRunner(ptpc);
+    //    runner.setValidateExpressionUsage(true);
+    //    runner.setProperty(embeddedServer, "true");
+    //    runner.setProperty(confURI, url.toURI().toString());
+    //    runner.setProperty(query, queryStr);
+    //
+    //    //    ptpc.onPropertyModified(embeddedServer, "true", "true");
+    //    //    ptpc.onPropertyModified(confURI, "", url.toURI().toString());
+    //    //    ptpc.onPropertyModified(query, "true", queryStr);
+    //
+    //    runner.assertValid();
+    //    App.settings = Settings.read("target/test-classes/graphdb-conf/gremlin-mem.yml");
+    //
+    //    App.graph = (JanusGraph) ptpcBr.embeddedServer.getGraphManager().getGraph("graph");
+    //
+    //    Bindings bindings = new ConcurrentBindings();
+    //    bindings.put("graph", App.graph);
+    //
+    //    ptpcBr.runQuery(bindings, loadSchemaQueryStr);
+    //    ptpc.runQuery(bindings, loadSchemaQueryStr);
+    //
 
   }
 
@@ -1084,9 +1082,9 @@ public class TestIngestionProcessor
     attribs.put("pg_content",
         "{\"text\":\"Hi  All \\u2013 Reminder for the session \\u201CDigital Customer Acquisition in Insurance\\u201D by Sandeep Manchanda and Chayan Dasgupta on 14th November.\\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nTo:  All Band D & above, and Band C in Insurance BU\\r\\n\\r\\n \\r\\n\\r\\n\\r\\n\\r\\n                                                                                                                            \\r\\n\\r\\nHi All,\\r\\n\\r\\n \\r\\n\\r\\nDigital transformation has put the spotlight on customer experience as a key business outcome. In the insurance industry, the entire customer journey is being reimagined. And customer acquisition has been at the forefront of this transformation. \\r\\n\\r\\n \\r\\n\\r\\nI am pleased to invite you to the IntelliTalk on Digital Customer Acquisition in Insurance by Sandeep Manchanda, VP, Global Head of Digital Customer Acquisition and Chayan Dasgupta, VP Technology\\/Product Development, on the 14th November at 9 am \\u201310 am Eastern.\\r\\n\\r\\n \\r\\n\\r\\nThis session will focus on:\\r\\n\\r\\n*         What are key drivers of digital customer acquisition in Insurance\\r\\n\\r\\n*         What new innovations by InsurTechs and incumbents have entered the market\\r\\n\\r\\n*         EXL\\u2019s digital customer acquisition strategy in Insurance\\r\\n\\r\\n*         Review EXL\\u2019s Digital Customer Acquisition (DCA) platform \\r\\n\\r\\n \\r\\n\\r\\nTo prepare for the future, carriers are augmenting their \\u201Cfeet-on-the-street\\u201D customer acquisition model with a more agile, digital strategy by deploying end-to-end digital platforms. Companies have the opportunity to achieve profitable distribution by acquiring and onboarding sustainable customers more quickly and at a lower cost than traditional methods.\\r\\n\\r\\n \\r\\n\\r\\nDATE: 14th November, 9.00 am\\u201310.00 am Eastern, 7:30 pm\\u20138.30 pm IST \\r\\n\\r\\n \\r\\n\\r\\nThank you to Sandeep Manchanda and Chayan Dasgupta for sharing their insights on how EXL is applying Digital Intelligence to redefine customer acquisition for our Insurance clients. \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\nJoin Skype Meeting <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H>       \\r\\n\\r\\nTrouble Joining? Try Skype Web App <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H?sl=1>  \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nJoin by Phone\\r\\n\\r\\nFind a local number <http:\\/\\/www.intercall.com\\/l\\/dial-in-number-lookup.php>  \\r\\n\\r\\n \\r\\n\\r\\nConference ID: 9549110989 \\r\\n\\r\\n \\r\\n\\r\\nHelp <http:\\/\\/go.microsoft.com\\/fwlink\\/?LinkId=389737>    \\r\\n\\r\\n \\r\\n\\r\\nUS 8773614628\\r\\n\\r\\nIndia 180030106096\\r\\n\\r\\nPhilippines 180011101824, 180087989954\\r\\n\\r\\nUK 08003761896\\r\\n\\r\\nCzech Republic 296180005\\r\\n\\r\\nRomania 0800895570\\r\\n\\r\\nSouth Africa 0800014682 \\r\\n\\r\\n[!\\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\n \\r\\n\\r\\n\\n\",\"features\":{\"entities\":{}}}");
 
-
     return attribs;
   }
+
   @Test public void testMatchingScoresRawIdx90Pcnt() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -1097,7 +1095,7 @@ public class TestIngestionProcessor
 
     byte[] res = ptpcBr.runQuery(attribs,
         String.format(queryStr3, "90.0"));
-    String data    = new String(res);
+    String data      = new String(res);
     String actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(actualRes);
 
@@ -1114,39 +1112,91 @@ public class TestIngestionProcessor
             + "  \n"
             + "  idxQueryRes\n");
 
-    data            = new String(res);
+    data = new String(res);
     assertNotNull("Data not NULL expected", data);
-
 
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Metadata.Type.Person',eq('Person')).count()");
-    data            = new String(res);
+    data = new String(res);
     Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
     assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
 
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
-    data            = new String(res);
+    data = new String(res);
     //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
     assertNotNull("Data not NULL expected", data);
 
-
-
     byte[] res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
-    String data2     = new String(res2);
+    String  data2    = new String(res2);
     Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
-
     res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
-    data2     = new String(res2);
+    data2 = new String(res2);
     numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
+  }
+
+  @Test public void testMatchingScoresRawIdx45Pcnt() throws Exception
+  {
+    List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
+
+    // This should fall short of the 90% threshold, so no edges should be created.
+    Bindings attribs = getBulkRecordAttribs(result);
+    attribs.put("pg_nlp_res_person", "[\"John\"]");
+
+    byte[] res = ptpcBr.runQuery(attribs,
+        String.format(queryStr3, "45.0"));
+    String data      = new String(res);
+    String actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
+    assertNotNull(actualRes);
+
+    res = ptpcBr.runQuery(attribs,
+        "double maxScoreForRawIdx = 0;\n"
+            + "int maxHitsPerType = 1000;\n"
+            + "  Map<Long, Double> idxQueryRes = new HashMap<>();\n"
+            + "\n"
+            + "  graph.indexQuery(\"personDataMixedIdx\", 'v.\"Person.Full_Name_fuzzy\":john~')?.limit(maxHitsPerType)?.vertexStream()?.forEach { org.janusgraph.core.JanusGraphIndexQuery.Result<org.janusgraph.core.JanusGraphVertex> result ->\n"
+            + "    double score = result.score\n"
+            + "    idxQueryRes.put((Long)result.element.id(), score);\n"
+            + "    maxScoreForRawIdx = Math.max(maxScoreForRawIdx, score);\n"
+            + "  }\n"
+            + "  \n"
+            + "  idxQueryRes\n");
+
+    data = new String(res);
+    assertNotNull("Data not NULL expected", data);
+
+    res = ptpcBr.runQuery(attribs,
+        "g.V().has('Metadata.Type.Person',eq('Person')).count()");
+    data = new String(res);
+    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
+
+    res = ptpcBr.runQuery(attribs,
+        "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
+    data = new String(res);
+    //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    assertNotNull("Data not NULL expected", data);
+
+    byte[] res2 = ptpcBr.runQuery(attribs,
+        "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
+    String  data2    = new String(res2);
+    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    assertEquals("6 people edges expected, as the threshold is 45%", 6, (int) numEdges);
+
+    res2 = ptpcBr.runQuery(attribs,
+        "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
+    data2 = new String(res2);
+    numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
   }
+
   @Test public void testMatchingScores90Pcnt() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -1157,112 +1207,104 @@ public class TestIngestionProcessor
 
     byte[] res = ptpcBr.runQuery(attribs,
         String.format(queryStr2, "90.0"));
-    String data    = new String(res);
+    String data      = new String(res);
     String actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(actualRes);
 
-
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Metadata.Type.Person',eq('Person')).count()");
-    data            = new String(res);
+    data = new String(res);
     Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
     assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
 
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
-    data            = new String(res);
+    data = new String(res);
     //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
     assertNotNull("Data not NULL expected", data);
 
-
-
     byte[] res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
-    String data2     = new String(res2);
+    String  data2    = new String(res2);
     Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
-
     res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
-    data2     = new String(res2);
+    data2 = new String(res2);
     numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
-
   }
+
   @Test public void testMatchingScores45Pcnt() throws Exception
   {
-  List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
+    List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
 
-  // This should fall within the 45% threshold, so an extra  edge should be created.
-  Bindings attribs = getBulkRecordAttribs(result);
-  attribs.put("pg_nlp_res_person", "[\"John\"]");
+    // This should fall within the 45% threshold, so an extra  edge should be created.
+    Bindings attribs = getBulkRecordAttribs(result);
+    attribs.put("pg_nlp_res_person", "[\"John\"]");
 
-  byte[] res = ptpcBr.runQuery(attribs,
-      String.format(queryStr2, "45.0"));
-  String data    = new String(res);
-  String actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
-  assertNotNull(actualRes);
+    byte[] res = ptpcBr.runQuery(attribs,
+        String.format(queryStr2, "45.0"));
+    String data      = new String(res);
+    String actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
+    assertNotNull(actualRes);
 
+    res = ptpcBr.runQuery(attribs,
+        "g.V().has('Metadata.Type.Person',eq('Person')).count()");
+    data = new String(res);
+    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
 
-  res = ptpcBr.runQuery(attribs,
-      "g.V().has('Metadata.Type.Person',eq('Person')).count()");
-  data            = new String(res);
-  Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
-  assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
+    res = ptpcBr.runQuery(attribs,
+        "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
+    data = new String(res);
+    //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    assertNotNull("Data not NULL expected", data);
 
-  res = ptpcBr.runQuery(attribs,
-      "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
-  data            = new String(res);
-  //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
-  assertNotNull("Data not NULL expected", data);
-
-
-
-  byte[] res2 = ptpcBr.runQuery(attribs,
-      "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
-  String data2     = new String(res2);
-  Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  assertEquals("6 people edges expected, as the threshold is 45%", 6, (int) numEdges);
+    byte[] res2 = ptpcBr.runQuery(attribs,
+        "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
+    String  data2    = new String(res2);
+    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    assertEquals("6 people edges expected, as the threshold is 45%", 6, (int) numEdges);
 
     byte[] res3 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
-    String data3     = new String(res3);
+    String data3 = new String(res3);
     numEdges = JsonPath.read(data3, "$.result.data['@value'][0]['@value']");
-    assertEquals("6 people edges expected, as the threshold is 45%, and JOHN DAILEY is also a  match", 6, (int) numEdges);
+    assertEquals("6 people edges expected, as the threshold is 45%, and JOHN DAILEY is also a  match", 6,
+        (int) numEdges);
 
-}
+  }
 
   @Test public void testMatchingScoresJohnSmith() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
 
+    Thread.sleep(10000);
     // This should fall short of the 95% threshold, so no edges should be created.
     Bindings attribs = getBulkRecordAttribs(result);
     attribs.put("pg_nlp_res_person", "[\"John Smith\"]");
 
     byte[] res = ptpcBr.runQuery(attribs,
         String.format(queryStr2, "45.0"));
-    String data    = new String(res);
+    String data      = new String(res);
     String actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(actualRes);
 
-
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
-    data            = new String(res);
-//    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
-//    assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
+    data = new String(res);
+    //    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    //    assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
     assertNotNull(data);
-
 
     byte[] res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().has('fromScorePercent',gt((double)90.0)).count()");
-    String data2     = new String(res2);
+    String  data2    = new String(res2);
     Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
     assertEquals("6 people edges expected, as the threshold is 45%", 6, (int) numEdges);
-
 
   }
 
@@ -1281,272 +1323,6 @@ public class TestIngestionProcessor
 
   }
 
-  @Test public void testNLPNoValues() throws Exception
-  {
-
-    runner.setProperty(query,
-        String.format(queryStr2, "45.0"));
-
-    /* Load a batch of 2 requests separated by CDP_DELIMITER into the tinkerpop nifi processor*/
-    Map<String, String> attribs = new HashMap<>();
-    //    attribs.put("pg_poleJsonStr",
-    //        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
-    attribs.put("pg_lastErrorStr", "");
-
-    attribs.put("pg_currDate"
-        , "Wed Feb 06 09:21:32 UTC 2019");
-    attribs.put("pg_metadataController"
-        , "abc inc");
-    attribs.put("pg_metadataGDPRStatus"
-        , "Personal");
-    attribs.put("pg_metadataLineage"
-        , "https://randomuser.me/api/?format=csv");
-    attribs.put("pg_metadataLineageLocationTag"
-        , "GB");
-    attribs.put("pg_metadataLineageServerTag"
-        , "GDPR-AWS-APP-SERVER");
-    attribs.put("pg_metadataProcessor"
-        , "cdf inc");
-    attribs.put("pg_metadataRedaction"
-        , "/org/dpt/project/app");
-    attribs.put("pg_metadataStatus"
-        , "New");
-    attribs.put("pg_metadataVersion"
-        , "1");
-    attribs.put("pg_nlp_res_address"
-        , "[]");
-    attribs.put("pg_nlp_res_city"
-        , "[]");
-    attribs.put("pg_nlp_res_cred_card"
-        , "[]");
-    attribs.put("pg_nlp_res_date"
-        , "[\"\\/M2NRN65H?sl\u003d1\u003e\",\"EXL\\u2019s\"]");
-    attribs.put("pg_nlp_res_emailaddress"
-        , "[]");
-    attribs.put("pg_nlp_res_location"
-        , "[]");
-    attribs.put("pg_nlp_res_money"
-        , "[]");
-    attribs.put("pg_nlp_res_organization"
-        , "[]");
-    attribs.put("pg_nlp_res_person"
-        , "[]");
-    attribs.put("pg_nlp_res_phone"
-        , "[]");
-    attribs.put("pg_nlp_res_policy_number"
-        , "[]");
-    attribs.put("pg_nlp_res_post_code"
-        , "[]");
-    attribs.put("pg_nlp_res_road"
-        , "[]");
-    attribs.put("pg_nlp_res_time"
-        , "[]");
-    attribs.put("pg_nlp_res_twitterhandle"
-        , "[]");
-    attribs.put("pg_nlp_res_url"
-        , "[]");
-    attribs.put("priority"
-        , "0");
-    attribs.put("pg_content",
-        "{\"text\":\"Hi All \\u2013 Reminder for the session \\u201CDigital Customer Acquisition in Insurance\\u201D by Sandeep Manchanda and Chayan Dasgupta on 14th November.\\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nTo:  All Band D & above, and Band C in Insurance BU\\r\\n\\r\\n \\r\\n\\r\\n\\r\\n\\r\\n                                                                                                                            \\r\\n\\r\\nHi All,\\r\\n\\r\\n \\r\\n\\r\\nDigital transformation has put the spotlight on customer experience as a key business outcome. In the insurance industry, the entire customer journey is being reimagined. And customer acquisition has been at the forefront of this transformation. \\r\\n\\r\\n \\r\\n\\r\\nI am pleased to invite you to the IntelliTalk on Digital Customer Acquisition in Insurance by Sandeep Manchanda, VP, Global Head of Digital Customer Acquisition and Chayan Dasgupta, VP Technology\\/Product Development, on the 14th November at 9 am \\u201310 am Eastern.\\r\\n\\r\\n \\r\\n\\r\\nThis session will focus on:\\r\\n\\r\\n*         What are key drivers of digital customer acquisition in Insurance\\r\\n\\r\\n*         What new innovations by InsurTechs and incumbents have entered the market\\r\\n\\r\\n*         EXL\\u2019s digital customer acquisition strategy in Insurance\\r\\n\\r\\n*         Review EXL\\u2019s Digital Customer Acquisition (DCA) platform \\r\\n\\r\\n \\r\\n\\r\\nTo prepare for the future, carriers are augmenting their \\u201Cfeet-on-the-street\\u201D customer acquisition model with a more agile, digital strategy by deploying end-to-end digital platforms. Companies have the opportunity to achieve profitable distribution by acquiring and onboarding sustainable customers more quickly and at a lower cost than traditional methods.\\r\\n\\r\\n \\r\\n\\r\\nDATE: 14th November, 9.00 am\\u201310.00 am Eastern, 7:30 pm\\u20138.30 pm IST \\r\\n\\r\\n \\r\\n\\r\\nThank you to Sandeep Manchanda and Chayan Dasgupta for sharing their insights on how EXL is applying Digital Intelligence to redefine customer acquisition for our Insurance clients. \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\nJoin Skype Meeting <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H>       \\r\\n\\r\\nTrouble Joining? Try Skype Web App <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H?sl=1>  \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nJoin by Phone\\r\\n\\r\\nFind a local number <http:\\/\\/www.intercall.com\\/l\\/dial-in-number-lookup.php>  \\r\\n\\r\\n \\r\\n\\r\\nConference ID: 9549110989 \\r\\n\\r\\n \\r\\n\\r\\nHelp <http:\\/\\/go.microsoft.com\\/fwlink\\/?LinkId=389737>    \\r\\n\\r\\n \\r\\n\\r\\nUS 8773614628\\r\\n\\r\\nIndia 180030106096\\r\\n\\r\\nPhilippines 180011101824, 180087989954\\r\\n\\r\\nUK 08003761896\\r\\n\\r\\nCzech Republic 296180005\\r\\n\\r\\nRomania 0800895570\\r\\n\\r\\nSouth Africa 0800014682 \\r\\n\\r\\n[!\\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\n \\r\\n\\r\\n\\n\",\"features\":{\"entities\":{}}}");
-
-    runner.enqueue("  ", attribs);
-    //    runnerBr.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
-    runner.run();
-
-    List<MockFlowFile> result = runner.getFlowFilesForRelationship(ptpc.REL_SUCCESS);
-
-    /* check that we have a successful result */
-    runner.assertAllFlowFilesTransferred(ptpc.REL_SUCCESS, 1);
-
-    String data = new String(result.get(0).toByteArray());
-    assertNotNull(data);
-
-    /* extract the query results */
-    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-    assertNotNull(poleRes);
-
-    Bindings bindings = ptpc.getBindings(result.get(0));
-
-    byte[] res = ptpc.runQuery(bindings,
-        "g.V().has('Metadata.Type.Person',eq('Person')).count()");
-    String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("No people records expected", 0, (int) numItemsWithGUID);
-
-    //    assertEquals(poleRes.split("SANDEEP").length, 169);
-  }
-
-  @Test public void testIssueNLPQueryStuck() throws Exception
-  {
-
-    runner.setProperty(query,
-        String.format(queryStr2, "45.0"));
-
-    /* Load a batch of 2 requests separated by CDP_DELIMITER into the tinkerpop nifi processor*/
-    Map<String, String> attribs = new HashMap<>();
-    //    attribs.put("pg_poleJsonStr",
-    //        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
-    attribs.put("pg_lastErrorStr", "");
-
-    attribs.put("pg_currDate"
-        , "Wed Feb 06 09:21:32 UTC 2019");
-    attribs.put("pg_metadataController"
-        , "abc inc");
-    attribs.put("pg_metadataGDPRStatus"
-        , "Personal");
-    attribs.put("pg_metadataLineage"
-        , "https://randomuser.me/api/?format=csv");
-    attribs.put("pg_metadataLineageLocationTag"
-        , "GB");
-    attribs.put("pg_metadataLineageServerTag"
-        , "GDPR-AWS-APP-SERVER");
-    attribs.put("pg_metadataProcessor"
-        , "cdf inc");
-    attribs.put("pg_metadataRedaction"
-        , "/org/dpt/project/app");
-    attribs.put("pg_metadataStatus"
-        , "New");
-    attribs.put("pg_metadataVersion"
-        , "1");
-    attribs.put("pg_nlp_res_address"
-        , "[]");
-    attribs.put("pg_nlp_res_city"
-        , "[]");
-    attribs.put("pg_nlp_res_cred_card"
-        , "[]");
-    attribs.put("pg_nlp_res_date"
-        , "[\"\\/M2NRN65H?sl\u003d1\u003e\",\"EXL\\u2019s\"]");
-    attribs.put("pg_nlp_res_emailaddress"
-        , "[]");
-    attribs.put("pg_nlp_res_location"
-        , "[\"0800895570\r\n\r\nSouth Africa\"]");
-    attribs.put("pg_nlp_res_money"
-        , "[]");
-    attribs.put("pg_nlp_res_organization"
-        ,
-        "[\"Digital Customer Acquisition\",\"Global Head\",\"\u201310\",\"Eastern\",\"IST\",\"VP Technology \\/Product Development\",\"Republic\"]");
-    attribs.put("pg_nlp_res_person"
-        ,
-        "[null,\"All\",\"All \u2013 Reminder for the session \u201CDigital Customer Acquisition in Insurance\u201D by Sandeep Manchanda and Chayan Dasgupta on 14th November.\r\n\r\n \r\n\r\n \r\n\r\nTo:  All Band D \u0026 above\"]");
-    attribs.put("pg_nlp_res_phone"
-        ,
-        "[null,\"77\",\"8995\",\"29\",\"1110\",\"1098\",\"491\",\"361\",\"4628\",\"1\",\"376\",\"1896\",\"0005\",\"301\",\"0146\",\"8\",\"800\",\"0609\",\"879\",\"8955\",\"95\",\"618\"]");
-    attribs.put("pg_nlp_res_policy_number"
-        ,
-        "[\"87736146\",\"08000146\",\"08008955\",\"18003010\",\"18008798\",\"95491109\",\"29618000\",\"18001110\",\"08003761\"]");
-    attribs.put("pg_nlp_res_post_code"
-        ,
-        "[null,\"u201CD\",\"he 14\",\"UK 08\",\"ia 08\",\"on 14\",\"u20\",\"US 87\",\"ca 08\",\"ic 29\",\"ia 18\",\"RN65\",\"es 18\",\"u201Cf\"]");
-    attribs.put("pg_nlp_res_road"
-        , "[]");
-    attribs.put("pg_nlp_res_time"
-        , "[]");
-    attribs.put("pg_nlp_res_twitterhandle"
-        , "[]");
-    attribs.put("pg_nlp_res_url"
-        , "[]");
-    attribs.put("priority"
-        , "0");
-    attribs.put("pg_content",
-        "{\"text\":\"Hi All \\u2013 Reminder for the session \\u201CDigital Customer Acquisition in Insurance\\u201D by Sandeep Manchanda and Chayan Dasgupta on 14th November.\\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nTo:  All Band D & above, and Band C in Insurance BU\\r\\n\\r\\n \\r\\n\\r\\n\\r\\n\\r\\n                                                                                                                            \\r\\n\\r\\nHi All,\\r\\n\\r\\n \\r\\n\\r\\nDigital transformation has put the spotlight on customer experience as a key business outcome. In the insurance industry, the entire customer journey is being reimagined. And customer acquisition has been at the forefront of this transformation. \\r\\n\\r\\n \\r\\n\\r\\nI am pleased to invite you to the IntelliTalk on Digital Customer Acquisition in Insurance by Sandeep Manchanda, VP, Global Head of Digital Customer Acquisition and Chayan Dasgupta, VP Technology\\/Product Development, on the 14th November at 9 am \\u201310 am Eastern.\\r\\n\\r\\n \\r\\n\\r\\nThis session will focus on:\\r\\n\\r\\n*         What are key drivers of digital customer acquisition in Insurance\\r\\n\\r\\n*         What new innovations by InsurTechs and incumbents have entered the market\\r\\n\\r\\n*         EXL\\u2019s digital customer acquisition strategy in Insurance\\r\\n\\r\\n*         Review EXL\\u2019s Digital Customer Acquisition (DCA) platform \\r\\n\\r\\n \\r\\n\\r\\nTo prepare for the future, carriers are augmenting their \\u201Cfeet-on-the-street\\u201D customer acquisition model with a more agile, digital strategy by deploying end-to-end digital platforms. Companies have the opportunity to achieve profitable distribution by acquiring and onboarding sustainable customers more quickly and at a lower cost than traditional methods.\\r\\n\\r\\n \\r\\n\\r\\nDATE: 14th November, 9.00 am\\u201310.00 am Eastern, 7:30 pm\\u20138.30 pm IST \\r\\n\\r\\n \\r\\n\\r\\nThank you to Sandeep Manchanda and Chayan Dasgupta for sharing their insights on how EXL is applying Digital Intelligence to redefine customer acquisition for our Insurance clients. \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\nJoin Skype Meeting <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H>       \\r\\n\\r\\nTrouble Joining? Try Skype Web App <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H?sl=1>  \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nJoin by Phone\\r\\n\\r\\nFind a local number <http:\\/\\/www.intercall.com\\/l\\/dial-in-number-lookup.php>  \\r\\n\\r\\n \\r\\n\\r\\nConference ID: 9549110989 \\r\\n\\r\\n \\r\\n\\r\\nHelp <http:\\/\\/go.microsoft.com\\/fwlink\\/?LinkId=389737>    \\r\\n\\r\\n \\r\\n\\r\\nUS 8773614628\\r\\n\\r\\nIndia 180030106096\\r\\n\\r\\nPhilippines 180011101824, 180087989954\\r\\n\\r\\nUK 08003761896\\r\\n\\r\\nCzech Republic 296180005\\r\\n\\r\\nRomania 0800895570\\r\\n\\r\\nSouth Africa 0800014682 \\r\\n\\r\\n[!\\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\n \\r\\n\\r\\n\\n\",\"features\":{\"entities\":{}}}");
-
-    runner.enqueue("  ", attribs);
-    //    runnerBr.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
-    runner.run();
-
-    List<MockFlowFile> result = runner.getFlowFilesForRelationship(ptpc.REL_SUCCESS);
-
-    /* check that we have a successful result */
-    runner.assertAllFlowFilesTransferred(ptpc.REL_SUCCESS, 1);
-
-    String data = new String(result.get(0).toByteArray());
-    assertNotNull(data);
-
-    /* extract the query results */
-    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-    assertNotNull(poleRes);
-
-    assertEquals(poleRes.split("SANDEEP").length, 169);
-  }
-
-  //  @Test public void testBatchReverseOrder() throws Exception
-  //  {
-  //    testBatchCommon("pole-batch-reverse-order.json");
-  //  }
-
-  //  @Test public void testSpitCreateUpdateBatchNormalOrder() throws Exception
-  //  {
-  //    testBatchCommonSplitCreateUpdate("pole-batch.json");
-  //  }
-  //
-  //  @Test public void testSpitCreateUpdateBatchReverseOrder() throws Exception
-  //  {
-  //    testBatchCommonSplitCreateUpdate("pole-batch-reverse-order.json");
-  //  }
-
-  @Test public void testBatchEntriesInEventualConsistencyLimbo() throws Exception
-  {
-
-    String batchFileName = "pole-batch-matches-and-not-found-matches.json";
-
-    /* Load a batch of 2 requests separated by CDP_DELIMITER into the tinkerpop nifi processor*/
-    Map<String, String> attribs = new HashMap<>();
-    attribs.put("pg_poleJsonStr",
-        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
-    attribs.put("pg_lastErrorStr", "");
-    attribs.put("pg_currDate", new Date().toString());
-
-    runner.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
-    runner.run();
-
-    List<MockFlowFile> result = runner.getFlowFilesForRelationship(ptpc.REL_FAILURE);
-
-    /* check that we have a successful result */
-    runner.assertAllFlowFilesTransferred(ptpc.REL_FAILURE, 1);
-
-    String data = new String(result.get(0).toByteArray());
-    assertNotNull(data);
-
-    /* extract the query results */
-    //    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-
-    /* Now, verify that the graph itself has the correct data by making a few queries directly to it */
-
-    Bindings bindings = ptpc.getBindings(result.get(0));
-
-    byte[] res = ptpc.runQuery(bindings,
-        "g.V().has('P.identity.id',eq('ccac8d5ff3288132af67e98ef771c722cf85e9c44b93eebb1e906646e0054725')).count()");
-    String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Only one item with GUID that had matched == false", 1, (int) numItemsWithGUID);
-
-    res = ptpc.runQuery(bindings,
-        "g.V().has('E.journey.id',eq('bf08c81b6becff33a2478f4d8aff7700a081ec737adc683a9c5078dae2df3d11')).count()");
-    data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Only one item with GUID that had matched == false", 1, (int) numItemsWithGUID);
-
-    res = ptpc.runQuery(bindings,
-        "g.V().has('O.document.id',eq('2ce842fba7ed428c331e6c156f893aaeaf216b661e03782bc884da36861f981e')).count()");
-    data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Only one item with GUID that had matched == false", 1, (int) numItemsWithGUID);
-
-    res = ptpc.runQuery(bindings,
-        "g.V().has('L.place.id',eq('39a45fe15843d19277e6e32927cf57ef85b6d4937dd62a6680c099eb03432bf2')).count()");
-    data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Only one item with GUID that had matched == true and false", 1, (int) numItemsWithGUID);
-
-    res = ptpc.runQuery(bindings,
-        "g.V().has('L.place.id',eq('a1ab8e18efb54371d789de921375354aee750cf6fc97e0af00d30f8b01921dac')).count()");
-    data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("No matches for item with GUID that had matched == true only", 0, (int) numItemsWithGUID);
-
-  }
-
   public List<MockFlowFile> testCSVRecordsCommon(String batchFileName) throws Exception
   {
 
@@ -1560,7 +1336,7 @@ public class TestIngestionProcessor
     runnerBr.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
     runnerBr.run();
 
-    List<MockFlowFile> result = runnerBr.getFlowFilesForRelationship(ptpc.REL_SUCCESS);
+    List<MockFlowFile> result = runnerBr.getFlowFilesForRelationship(ptpcBr.REL_SUCCESS);
 
     /* check that we have a successful result */
     runnerBr.assertAllFlowFilesTransferred(ptpcBr.REL_SUCCESS, 1);
@@ -1594,314 +1370,6 @@ public class TestIngestionProcessor
 
     //    Assert.assertEquals(hashedKeyExpected, result.get(0).getAttribute("kafka_key"));
   }
-
-  public void testBatchCommon(String batchFileName) throws Exception
-  {
-
-    /* Load a batch of 2 requests separated by CDP_DELIMITER into the tinkerpop nifi processor*/
-    Map<String, String> attribs = new HashMap<>();
-    attribs.put("pg_poleJsonStr",
-        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
-    attribs.put("pg_lastErrorStr", "");
-
-    runnerBr.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
-    runnerBr.run();
-
-    List<MockFlowFile> result = runnerBr.getFlowFilesForRelationship(ptpcBr.REL_SUCCESS);
-
-    /* check that we have a successful result */
-    runnerBr.assertAllFlowFilesTransferred(ptpcBr.REL_SUCCESS, 1);
-
-    String data = new String(result.get(0).toByteArray());
-    assertNotNull(data);
-
-    /* extract the query results */
-    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-
-    Integer numEntries = JsonPath.read(poleRes, "$.length()");
-
-    //    assertEquals("Batch count preserved", 2, (int) numEntries);
-    //
-    //    Integer numAssocFirstBatch = JsonPath.read(poleRes, "$.[0].numberOfAssociationsCreated");
-    //    Integer numAssocSecondBatch = JsonPath.read(poleRes, "$.[1].numberOfAssociationsCreated");
-    //
-    //    assertEquals("Num of Assocs first batch is OK", 9, (int) numAssocFirstBatch);
-    //    assertEquals("Num of Assocs second batch is OK", 9, (int) numAssocSecondBatch);
-    //
-    //    numAssocFirstBatch = JsonPath.read(poleRes, "$.[0].associations.length()");
-    //    numAssocSecondBatch = JsonPath.read(poleRes, "$.[1].associations.length()");
-    //
-    //    assertEquals("Num of Assocs first batch is OK", 9, (int) numAssocFirstBatch);
-    //    assertEquals("Num of Assocs second batch is OK", 9, (int) numAssocSecondBatch);
-
-    /* Now, verify that the graph itself has the correct data by making a few queries directly to it */
-
-    Bindings bindings = ptpcBr.getBindings(result.get(0));
-
-    byte[] res = ptpcBr.runQuery(bindings,
-        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).count()");
-    String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-
-    res = ptpcBr.runQuery(bindings,
-        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).both().dedup().count()");
-    data2 = new String(res);
-    Integer numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Num Neighbours", 1, (int) numNeighbours);
-
-    res = ptpcBr.runQuery(bindings,
-        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).count()");
-    data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-
-    res = ptpcBr.runQuery(bindings,
-        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).both().dedup().count()");
-    data2 = new String(res);
-    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Num Neighbours ", 1, (int) numNeighbours);
-
-    res = ptpcBr.runQuery(bindings,
-        "g.V().has('E.journey.id',eq('262c57d3f042f5b27ed64533796cf7c218887c484b6a98cac09c64267b25b994')).both().dedup().count()");
-    data2 = new String(res);
-    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-    assertEquals("Num Neighbours ", 6, (int) numNeighbours);
-
-    runner.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + "pole-batch.json"), attribs);
-    runner.run();
-
-    result = runner.getFlowFilesForRelationship(ptpcBr.REL_SUCCESS);
-    data = new String(result.get(1).toByteArray());
-    assertNotNull(data);
-
-    poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create", "U",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[0].action"));
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create", "U",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[1].action"));
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create", "U",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[2].action"));
-    /* Commented out for P.identities and E.xxxMessage should always be created, but the test didn't change the guids of them at runtime
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create",
-        "C",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[3].action"));*/
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create", "C",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[4].action"));
-    /* Commented out for P.identities and E.xxxMessage should always be created, but the test didn't change the guids of them at runtime
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create",
-        "U",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[5].action"));*/
-    assertEquals(
-        "Action is still create the second time now that we are using the matched flag to define when to create", "U",
-        JsonPath.read(poleRes, "$.[0].poleGUIDs[6].action"));
-
-    //    Assert.assertEquals(hashedKeyExpected, result.get(0).getAttribute("kafka_key"));
-  }
-
-  //  public void testBatchCommonSplitCreateUpdate(String batchFileName) throws Exception
-  //  {
-  ////    setup2();
-  //    /* Load a batch of 2 requests separated by CDP_DELIMITER into the tinkerpop nifi processor*/
-  //    Map<String, String> attribs = new HashMap<>();
-  //    attribs.put("pg_poleJsonStr",
-  //        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
-  //    attribs.put("pg_lastErrorStr", "");
-  //
-  //    String createQuery = "ingestPoleCreate(pg_poleJsonStr, graph, g)";
-  //
-  //    runner.setProperty(query, createQuery);
-  //    ptpc.onPropertyModified(query, "", createQuery);
-  //
-  //    runner.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
-  //    runner.run();
-  //
-  //    List<MockFlowFile> result = runner.getFlowFilesForRelationship(ptpc.REL_SUCCESS);
-  //
-  //    /* check that we have a successful result */
-  //    runner.assertAllFlowFilesTransferred(ptpc.REL_SUCCESS, 1);
-  //
-  //    String data = new String(result.get(0).toByteArray());
-  //    assertNotNull(data);
-  //
-  //    /* extract the query results */
-  //    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-  //
-  //    assertEquals("get a OK message", "OK", poleRes);
-  //
-  //    // At this stage, we should only have vertices created, but no neighbours.
-  //    Bindings bindings = ptpc.getBindings(result.get(0));
-  //
-  //    byte[] res = ptpc.runQuery(bindings,
-  //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).count()");
-  //    String data2 = new String(res);
-  //    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('2554cc00d58dda38b0f50b86610f45a9fb592415b3ac8a6bbdb80c43b6c89e95')).count()");
-  //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).both().dedup().count()");
-  //    data2 = new String(res);
-  //    Integer numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("No edges after the create step", 0, (int) numNeighbours);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).count()");
-  //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).both().dedup().count()");
-  //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("No edges after the create step ", 0, (int) numNeighbours);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('E.journey.id',eq('262c57d3f042f5b27ed64533796cf7c218887c484b6a98cac09c64267b25b994')).both().dedup().count()");
-  //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("No edges after the create step ", 0, (int) numNeighbours);
-  //
-  //    //    String updateQuery = "StringBuilder sb = new StringBuilder(); \n"
-  //    //        + "try { ingestPoleUpdate(pg_poleJsonStr, graph, g, sb)} \n"
-  //    //        + "catch (Throwable t){\n"
-  //    //        + "  String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(t);\n"
-  //    //        + "   sb.append(stackTrace);\n"
-  //    //        + "}\n"
-  //    //        + "sb.toString();";
-  //
-  //    String updateQuery = "ingestPoleUpdate(pg_poleJsonStr, graph, g)";
-  //
-  //
-  //
-  //    //
-  //    //    runner.setProperty(query, updateQuery);
-  //    //    ptpc.onPropertyModified(query, "", updateQuery);
-  //    //
-  //    //
-  //    // check that the value is still in the graph after resetting the updateQuery.
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('2554cc00d58dda38b0f50b86610f45a9fb592415b3ac8a6bbdb80c43b6c89e95')).count()");
-  //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //
-  //
-  //    res = ptpc.runQuery(bindings,updateQuery);
-  //    data = new String(res);
-  //
-  //    //
-  //    //
-  //    //
-  //    //    runner.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
-  //    //    runner.run();
-  //
-  //    // check that the value is still in the graph after enqueue / run .
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('2554cc00d58dda38b0f50b86610f45a9fb592415b3ac8a6bbdb80c43b6c89e95')).count()");
-  //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //
-  //    poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
-  //
-  //    Integer numEntries = JsonPath.read(poleRes, "$.length()");
-  //
-  //    assertEquals("Batch count preserved", 2, (int) numEntries);
-  //
-  //    Integer numAssocFirstBatch = JsonPath.read(poleRes, "$.[0].numberOfAssociationsCreated");
-  //    Integer numAssocSecondBatch = JsonPath.read(poleRes, "$.[1].numberOfAssociationsCreated");
-  //
-  //    assertEquals("Num of Assocs first batch is OK", 9, (int) numAssocFirstBatch);
-  //    assertEquals("Num of Assocs second batch is OK", 9, (int) numAssocSecondBatch);
-  //
-  //    numAssocFirstBatch = JsonPath.read(poleRes, "$.[0].associations.length()");
-  //    numAssocSecondBatch = JsonPath.read(poleRes, "$.[1].associations.length()");
-  //
-  //    assertEquals("Num of Assocs first batch is OK", 9, (int) numAssocFirstBatch);
-  //    assertEquals("Num of Assocs second batch is OK", 9, (int) numAssocSecondBatch);
-  //
-  //    /* Now, verify that the graph itself has the correct data by making a few queries directly to it */
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).count()");
-  //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).both().dedup().count()");
-  //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Num Neighbours", 1, (int) numNeighbours);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).count()");
-  //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).both().dedup().count()");
-  //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Num Neighbours ", 1, (int) numNeighbours);
-  //
-  //    res = ptpc.runQuery(bindings,
-  //        "g.V().has('E.journey.id',eq('262c57d3f042f5b27ed64533796cf7c218887c484b6a98cac09c64267b25b994')).both().dedup().count()");
-  //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
-  //    assertEquals("Num Neighbours ", 6, (int) numNeighbours);
-  //
-  //    //
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create", "C",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[0].action"));
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create", "C",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[1].action"));
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create", "C",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[2].action"));
-  //    //    /* Commented out for P.identities and E.xxxMessage should always be created, but the test didn't change the guids of them at runtime
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create",
-  //    //        "C",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[3].action"));*/
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create", "C",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[4].action"));
-  //    //    /* Commented out for P.identities and E.xxxMessage should always be created, but the test didn't change the guids of them at runtime
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create",
-  //    //        "U",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[5].action"));*/
-  //    //    assertEquals(
-  //    //        "Action is still create the second time now that we are using the matched flag to define when to create", "C",
-  //    //        JsonPath.read(poleRes, "$.[0].poleGUIDs[6].action"));
-  //    //
-  //    //    //    Assert.assertEquals(hashedKeyExpected, result.get(0).getAttribute("kafka_key"));
-  //  }
 
 }
 

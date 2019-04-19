@@ -43,7 +43,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.util.function.FunctionUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.janusgraph.core.JanusGraph;
-import org.janusgraph.core.JanusGraphFactory;
 import org.janusgraph.diskstorage.configuration.backend.CommonsConfiguration;
 import org.javatuples.Pair;
 
@@ -143,7 +142,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
                                                                                         .build();
 
   protected int timeoutInSecs = 20;
-
+  public JanusGraph graph;
   final MessageTextSerializer messageTextSerializer = new GraphSONMessageSerializerV3d0();
 
   //    static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
@@ -200,7 +199,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
 
   //    private Pattern colonSplitPattern = Pattern.compile(":");
 
-  String confFileURI = null;
+  public String confFileURI = null;
   //  Configuration conf = null;
 
   String queryStr             = null;
@@ -212,7 +211,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
   TimeBasedGenerator uuidGen = Generators.timeBasedGenerator(addr);
 
   Boolean               useEmbeddedServer = true;
-  ServerGremlinExecutor embeddedServer    = null;
+  public ServerGremlinExecutor embeddedServer    = null;
 
   static ClusterClientService clusterClientService;
   //  Cluster cluster = null;
@@ -323,7 +322,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
       timeoutInSecs = Integer.parseInt(newValue);
     }
 
-    createClient(confFileURI, useEmbeddedServer);
+//    createClient(confFileURI, useEmbeddedServer);
 
   }
 
@@ -473,13 +472,13 @@ public class PontusTinkerPopClient extends AbstractProcessor
         .getOrDefault("graph", "/opt/pontus/pontus-graph/current/conf/janusgraph-hbase-es.properties");
 
     File                 gconfFile = new File(gconfFileStr);
-    CommonsConfiguration conf      = getLocalConfiguration(gconfFile, null, null);
+//    CommonsConfiguration conf      = getLocalConfiguration(gconfFile, null, null);
 
-    JanusGraph graph = JanusGraphFactory.open(conf);
+//    graph = JanusGraphFactory.open(conf);
 
     embeddedServer = new ServerGremlinExecutor(settings, null, null);
-    embeddedServer.getGraphManager().putTraversalSource("g", graph.traversal());
-    embeddedServer.getGraphManager().putGraph("graph", graph);
+//    embeddedServer.getGraphManager().putTraversalSource("g", graph.traversal());
+//    embeddedServer.getGraphManager().putGraph("graph", graph);
 
     configureSerializers();
 
@@ -787,6 +786,56 @@ public class PontusTinkerPopClient extends AbstractProcessor
 
   }
 
+  public byte[] runQueryInEmbeddedServer(Bindings bindings, String queryString)
+      throws ExecutionException, InterruptedException
+  {
+    final GremlinExecutor gremlinExecutor = embeddedServer.getGremlinExecutor();
+    //        final MessageTextSerializer serializer = embeddedServer.getGraphManager();
+
+    MessageTextSerializer serializer = serializers.get("application/json");
+
+    final CompletableFuture<Object> evalFuture = gremlinExecutor
+        .eval(queryString, null, bindings, FunctionUtils.wrapFunction(o -> {
+          final ResponseMessage responseMessage = ResponseMessage.build(uuidGen.generate())
+                                                                 .code(ResponseStatusCode.SUCCESS)
+                                                                 .result(IteratorUtils.asList(o)).create();
+
+          try
+          {
+            return Unpooled.wrappedBuffer(
+                serializer.serializeResponseAsString(responseMessage).getBytes(Charset.defaultCharset()));
+          }
+          catch (Exception ex)
+          {
+            //                logger.warn(String.format("Error during serialization for %s", responseMessage), ex);
+            throw ex;
+          }
+        }));
+
+    evalFuture.exceptionally(t -> {
+      if (t.getMessage() != null)
+      {
+        getLogger().error("Server Error " + t.getMessage());
+        throw new ProcessException(t);
+
+        //            sendError(ctx, INTERNAL_SERVER_ERROR, t.getMessage(), Optional.of(t));
+      }
+      else
+      {
+        getLogger().error(String.format("Error encountered evaluating script: %s", queryStr, Optional.of(t)));
+      }
+      return null;
+    });
+
+    ByteBuf buf = (ByteBuf) evalFuture.get();
+
+    if (buf != null)
+    {
+      return buf.array();
+    }
+    return new byte[0];
+  }
+
   public byte[] runQuery(Bindings bindings, String queryString)
       throws ExecutionException, InterruptedException, IOException, URISyntaxException
   {
@@ -794,59 +843,20 @@ public class PontusTinkerPopClient extends AbstractProcessor
     if (useEmbeddedServer && embeddedServer == null)
     {
       embeddedServer = createEmbeddedServer();
+      // Send a dummy query to warm up.
+      runQueryInEmbeddedServer(bindings, "1+1");
+
     }
     if (useEmbeddedServer && embeddedServer != null)
     {
-      final GremlinExecutor gremlinExecutor = embeddedServer.getGremlinExecutor();
-      //        final MessageTextSerializer serializer = embeddedServer.getGraphManager();
-
-      MessageTextSerializer serializer = serializers.get("application/json");
-
-      final CompletableFuture<Object> evalFuture = gremlinExecutor
-          .eval(queryString, null, bindings, FunctionUtils.wrapFunction(o -> {
-            final ResponseMessage responseMessage = ResponseMessage.build(uuidGen.generate())
-                                                                   .code(ResponseStatusCode.SUCCESS)
-                                                                   .result(IteratorUtils.asList(o)).create();
-
-            try
-            {
-              return Unpooled.wrappedBuffer(
-                  serializer.serializeResponseAsString(responseMessage).getBytes(Charset.defaultCharset()));
-            }
-            catch (Exception ex)
-            {
-              //                logger.warn(String.format("Error during serialization for %s", responseMessage), ex);
-              throw ex;
-            }
-          }));
-
-      evalFuture.exceptionally(t -> {
-        if (t.getMessage() != null)
-        {
-          getLogger().error("Server Error " + t.getMessage());
-          //                                    session.transfer(tempFlowFile, REL_FAILURE);
-
-          throw new ProcessException(t);
-
-          //            sendError(ctx, INTERNAL_SERVER_ERROR, t.getMessage(), Optional.of(t));
-        }
-        else
-        {
-          getLogger().error(String.format("Error encountered evaluating script: %s", queryStr, Optional.of(t)));
-        }
-        return null;
-      });
-
-      ByteBuf buf = (ByteBuf) evalFuture.get();
-
-      if (buf != null)
-      {
-        return buf.array();
-      }
+      return runQueryInEmbeddedServer(bindings, queryString);
 
     }
     else
     {
+      if (client == null){
+        createClient();
+      }
       Map<String, Object> props = new HashMap<>(bindings);
       //      getLogger().debug("Custer client : queryString ---> " + queryString + ", bindings ---> " + props);
       ResultSet res = client.submit(queryString, props);
@@ -854,7 +864,6 @@ public class PontusTinkerPopClient extends AbstractProcessor
       return getBytesFromResultSet(res);
     }
 
-    return new byte[0];
   }
 
   @Override public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException
