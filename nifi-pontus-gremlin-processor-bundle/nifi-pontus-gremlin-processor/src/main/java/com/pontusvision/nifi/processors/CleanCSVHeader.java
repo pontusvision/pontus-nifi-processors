@@ -5,7 +5,7 @@
  */
 package com.pontusvision.nifi.processors;
 
-import com.pontusnetworks.utils.StringReplacer;
+import com.pontusvision.utils.StringReplacer;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;

@@ -18,3 +18,9 @@ nifi-pontus-services/nifi-pontus-service-api-nar/target
 */*/*/*.iml
 nifi-pontus-elastic-2.x-processor-bundle/nifi-pontus-elastic-2.x-processor/dependency-reduced-pom.xml
 
+
+ldap-test-utils/
+pontus-gdpr-graph/
+dependency-reduced-pom.xml
+foo
+jgex

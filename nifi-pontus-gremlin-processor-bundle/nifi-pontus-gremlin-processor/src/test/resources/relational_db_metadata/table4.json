@@ -1,0 +1,129 @@
+{
+  "colMetaData": [
+    {
+      "colName": "emp_no",
+      "primaryKeyName": "PRIMARY",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 1,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "10001",
+        "10002",
+        "10003",
+        "10004",
+        "10005"
+      ]
+    },
+    {
+      "colName": "birth_date",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 2,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "1953-09-02",
+        "1964-06-02",
+        "1959-12-03",
+        "1954-05-01",
+        "1955-01-21"
+      ]
+    },
+    {
+      "colName": "first_name",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 14,
+      "ordinalPos": 3,
+      "defVal": "",
+      "colSize": 14,
+      "vals": [
+        "Georgi",
+        "Bezalel",
+        "Parto",
+        "Chirstian",
+        "Kyoichi"
+      ]
+    },
+    {
+      "colName": "last_name",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 16,
+      "ordinalPos": 4,
+      "defVal": "",
+      "colSize": 16,
+      "vals": [
+        "Facello",
+        "Simmel",
+        "Bamford",
+        "Koblick",
+        "Maliniak"
+      ]
+    },
+    {
+      "colName": "gender",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 1,
+      "ordinalPos": 5,
+      "defVal": "",
+      "colSize": 1,
+      "vals": [
+        "M",
+        "F",
+        "M",
+        "M",
+        "M"
+      ]
+    },
+    {
+      "colName": "hire_date",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 6,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "1986-06-26",
+        "1985-11-21",
+        "1986-08-28",
+        "1986-12-01",
+        "1989-09-12"
+      ]
+    }
+  ],
+  "tableCatalog": "employees",
+  "tableName": "employees",
+  "fqn": "employees.employees",
+  "tableType": "TABLE",
+  "tableRemarks": ""
+}

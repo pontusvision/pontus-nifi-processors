@@ -43,7 +43,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.util.function.FunctionUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.janusgraph.core.JanusGraph;
-import org.janusgraph.core.JanusGraphFactory;
 import org.janusgraph.diskstorage.configuration.backend.CommonsConfiguration;
 import org.javatuples.Pair;
 
@@ -105,7 +104,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
           "Specifies whether an embedded Pontus Graph server should be used inside nifi. "
               + " If this is set to true, the Tinkerpop Client configuration URI is used to point to the gremlin-server.yml"
               + " file that will configure an embedded server.").required(false)
-      .addValidator(StandardValidators.BOOLEAN_VALIDATOR).defaultValue("true")
+      .addValidator(StandardValidators.BOOLEAN_VALIDATOR).defaultValue("false")
       //            .identifiesControllerService(HBaseClientService.class)
       .build();
 
@@ -125,17 +124,25 @@ public class PontusTinkerPopClient extends AbstractProcessor
       .build();
 
   final PropertyDescriptor TINKERPOP_ALIAS = new PropertyDescriptor.Builder().name("Tinkerpop graph alias")
-      .description("This will create an alias of g to any pre-configured graph in the server.").required(true)
-      .defaultValue("g1").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      //            .identifiesControllerService(HBaseClientService.class)
-      .build();
+                                                                             .description(
+                                                                                 "This will create an alias of g to any pre-configured graph in the server.")
+                                                                             .required(true)
+                                                                             .defaultValue("g1").addValidator(
+          StandardValidators.NON_EMPTY_VALIDATOR)
+                                                                             //            .identifiesControllerService(HBaseClientService.class)
+                                                                             .build();
 
   public static final PropertyDescriptor WAITING_TIME = new PropertyDescriptor.Builder().name("ClientTimeoutInSeconds")
-      .description("Specifies client timeout (in seconds) waiting for a remote Gremlin query response.").required(true)
-      .defaultValue("20").addValidator(StandardValidators.NUMBER_VALIDATOR).build();
+                                                                                        .description(
+                                                                                            "Specifies client timeout (in seconds) waiting for a remote Gremlin query response.")
+                                                                                        .required(true)
+                                                                                        .defaultValue("20")
+                                                                                        .addValidator(
+                                                                                            StandardValidators.NUMBER_VALIDATOR)
+                                                                                        .build();
 
   protected int timeoutInSecs = 20;
-
+  public JanusGraph graph;
   final MessageTextSerializer messageTextSerializer = new GraphSONMessageSerializerV3d0();
 
   //    static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
@@ -150,56 +157,67 @@ public class PontusTinkerPopClient extends AbstractProcessor
   //            .build();
 
   final PropertyDescriptor TINKERPOP_QUERY_STR = new PropertyDescriptor.Builder().name("Tinkerpop Query")
-      .description("A Tinkerpop 3.3.0 query.  ").required(true).expressionLanguageSupported(false).defaultValue(
-          "v1 = g.addV(\"person\").property(id, userID1).property(\"name\", userName1).property(\"age\", userAge1).next()\n"
-              + "v2 = g.addV(\"software\").property(id, userID2).property(\"name\", userName2).property(\"lang\", userLang2).next()\n"
-              + "g.addE(\"created\").from(v1).to(v2).property(id, relId1).property(\"weight\", relWeight1)\n")
-      .addValidator((subject, input, context) -> {
-        boolean isAscii = CharMatcher.ASCII.matchesAllOf(input);
-        ValidationResult.Builder builder = new ValidationResult.Builder();
+                                                                                 .description(
+                                                                                     "A Tinkerpop 3.3.0 query.  ")
+                                                                                 .required(true)
+                                                                                 .expressionLanguageSupported(false)
+                                                                                 .defaultValue(
+                                                                                     "v1 = g.addV(\"person\").property(id, userID1).property(\"name\", userName1).property(\"age\", userAge1).next()\n"
+                                                                                         + "v2 = g.addV(\"software\").property(id, userID2).property(\"name\", userName2).property(\"lang\", userLang2).next()\n"
+                                                                                         + "g.addE(\"created\").from(v1).to(v2).property(id, relId1).property(\"weight\", relWeight1)\n")
+                                                                                 .addValidator(
+                                                                                     (subject, input, context) -> {
+                                                                                       boolean                  isAscii = CharMatcher.ASCII
+                                                                                           .matchesAllOf(input);
+                                                                                       ValidationResult.Builder builder = new ValidationResult.Builder();
 
-        builder.valid(isAscii);
-        builder.input(input);
-        builder.subject(subject);
+                                                                                       builder.valid(isAscii);
+                                                                                       builder.input(input);
+                                                                                       builder.subject(subject);
 
-        if (!isAscii)
-        {
-          builder.explanation(
-              "Found non-ascii characters in the string; perhaps you copied and pasted from a word doc or web site?");
-        }
+                                                                                       if (!isAscii)
+                                                                                       {
+                                                                                         builder.explanation(
+                                                                                             "Found non-ascii characters in the string; perhaps you copied and pasted from a word doc or web site?");
+                                                                                       }
 
-        ValidationResult res = builder.build();
+                                                                                       ValidationResult res = builder
+                                                                                           .build();
 
-        return res;
-      }).build();
+                                                                                       return res;
+                                                                                     }).build();
 
   final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-      .description("FlowFiles are routed to this relationship if the query was successful").build();
+                                                             .description(
+                                                                 "FlowFiles are routed to this relationship if the query was successful")
+                                                             .build();
 
   final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-      .description("FlowFiles are routed to this relationship if the query was unsuccessful").build();
+                                                             .description(
+                                                                 "FlowFiles are routed to this relationship if the query was unsuccessful")
+                                                             .build();
 
   //    private Pattern colonSplitPattern = Pattern.compile(":");
 
-  String confFileURI = null;
+  public String confFileURI = null;
   //  Configuration conf = null;
 
-  String queryStr = null;
+  String queryStr             = null;
   String queryAttribPrefixStr = "pg_";
-  String aliasStr = "g1";
-  Client client = null;
+  String aliasStr             = "g1";
+  Client client               = null;
 
-  EthernetAddress addr = EthernetAddress.fromInterface();
+  EthernetAddress    addr    = EthernetAddress.fromInterface();
   TimeBasedGenerator uuidGen = Generators.timeBasedGenerator(addr);
 
-  Boolean useEmbeddedServer = null;
-  ServerGremlinExecutor embeddedServer = null;
+  Boolean               useEmbeddedServer = true;
+  public ServerGremlinExecutor embeddedServer    = null;
 
   static ClusterClientService clusterClientService;
   //  Cluster cluster = null;
   Set<Relationship> relationships = new HashSet<>();
 
-  Settings settings;
+  Settings                          settings;
   List<Settings.SerializerSettings> serializersSettings;
   protected final Map<String, MessageTextSerializer> serializers = new HashMap<>();
 
@@ -304,7 +322,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
       timeoutInSecs = Integer.parseInt(newValue);
     }
 
-    createClient(confFileURI, useEmbeddedServer);
+//    createClient(confFileURI, useEmbeddedServer);
 
   }
 
@@ -453,14 +471,14 @@ public class PontusTinkerPopClient extends AbstractProcessor
     String gconfFileStr = (String) settings.graphs
         .getOrDefault("graph", "/opt/pontus/pontus-graph/current/conf/janusgraph-hbase-es.properties");
 
-    File gconfFile = new File(gconfFileStr);
-    CommonsConfiguration conf = getLocalConfiguration(gconfFile, null, null);
+    File                 gconfFile = new File(gconfFileStr);
+//    CommonsConfiguration conf      = getLocalConfiguration(gconfFile, null, null);
 
-    JanusGraph graph = JanusGraphFactory.open(conf);
+//    graph = JanusGraphFactory.open(conf);
 
     embeddedServer = new ServerGremlinExecutor(settings, null, null);
-    embeddedServer.getGraphManager().putTraversalSource("g", graph.traversal());
-    embeddedServer.getGraphManager().putGraph("graph", graph);
+//    embeddedServer.getGraphManager().putTraversalSource("g", graph.traversal());
+//    embeddedServer.getGraphManager().putGraph("graph", graph);
 
     configureSerializers();
 
@@ -553,7 +571,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
         //        if (clazz.getAnnotation(Deprecated.class) != null)
         //          logger.warn("The {} serialization class is deprecated.", config.className);
 
-        final MessageSerializer serializer = (MessageSerializer) clazz.newInstance();
+        final MessageSerializer  serializer             = (MessageSerializer) clazz.newInstance();
         final Map<String, Graph> graphsDefinedAtStartup = new HashMap<>();
         for (String graphName : settings.graphs.keySet())
         {
@@ -576,21 +594,22 @@ public class PontusTinkerPopClient extends AbstractProcessor
         return Optional.<MessageSerializer>empty();
       }
     }).filter(Optional::isPresent).map(Optional::get)
-        .flatMap(ser -> Stream.of(ser.mimeTypesSupported()).map(mimeType -> Pair.with(mimeType, ser))).forEach(pair -> {
-      final String mimeType = pair.getValue0();
+                       .flatMap(ser -> Stream.of(ser.mimeTypesSupported()).map(mimeType -> Pair.with(mimeType, ser)))
+                       .forEach(pair -> {
+                         final String mimeType = pair.getValue0();
 
-      MessageSerializer ser = pair.getValue1();
-      if (ser instanceof MessageTextSerializer)
-      {
-        final MessageTextSerializer serializer = (MessageTextSerializer) ser;
+                         MessageSerializer ser = pair.getValue1();
+                         if (ser instanceof MessageTextSerializer)
+                         {
+                           final MessageTextSerializer serializer = (MessageTextSerializer) ser;
 
-        if (!serializers.containsKey(mimeType))
-        {
-          //        logger.info("Configured {} with {}", mimeType, pair.getValue1().getClass().getName());
-          serializers.put(mimeType, serializer);
-        }
-      }
-    });
+                           if (!serializers.containsKey(mimeType))
+                           {
+                             //        logger.info("Configured {} with {}", mimeType, pair.getValue1().getClass().getName());
+                             serializers.put(mimeType, serializer);
+                           }
+                         }
+                       });
 
     if (serializers.size() == 0)
     {
@@ -634,8 +653,6 @@ public class PontusTinkerPopClient extends AbstractProcessor
         createClient();
       }
 
-
-
     }
 
   }
@@ -660,7 +677,6 @@ public class PontusTinkerPopClient extends AbstractProcessor
       {
         clusterClientService = new ClusterClientServiceImpl(confFileURI);
         client = clusterClientService.createClient();
-
 
       }
 
@@ -716,8 +732,10 @@ public class PontusTinkerPopClient extends AbstractProcessor
     Map<String, String> allAttribs = flowfile.getAttributes();
 
     Map<String, Object> tinkerpopAttribs = allAttribs.entrySet().stream()
-        .filter((entry -> entry.getKey().startsWith(queryAttribPrefixStr)))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                                                     .filter((entry -> entry.getKey().startsWith(queryAttribPrefixStr)))
+                                                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    tinkerpopAttribs.putIfAbsent("pg_lastErrorStr", "");
 
     final Bindings bindings = new SimpleBindings(tinkerpopAttribs);
 
@@ -734,7 +752,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
     return queryStr;
   }
 
-  public byte[] getBytesFromResultSet (ResultSet res)
+  public byte[] getBytesFromResultSet(ResultSet res)
   {
 
     CompletableFuture<List<Result>> resFuture = res.all();
@@ -751,13 +769,13 @@ public class PontusTinkerPopClient extends AbstractProcessor
     try
     {
       final List<String> list = resFuture.get().stream()
-          .map(result -> result.getString()).collect(Collectors.toList());
+                                         .map(result -> result.getString()).collect(Collectors.toList());
 
       final ResponseMessage responseMessage = ResponseMessage.build(uuidGen.generate())
-          .code(ResponseStatusCode.SUCCESS).result(list).create();
+                                                             .code(ResponseStatusCode.SUCCESS).result(list).create();
 
       String responseAsString = messageTextSerializer.serializeResponseAsString(responseMessage);
-      byte[] bytes = responseAsString.getBytes(UTF8.getJavaName());
+      byte[] bytes            = responseAsString.getBytes(UTF8.getJavaName());
       return Unpooled.wrappedBuffer(bytes).array();
     }
     catch (Exception ex)
@@ -766,9 +784,58 @@ public class PontusTinkerPopClient extends AbstractProcessor
       throw new ProcessException(ex);
     }
 
-
-
   }
+
+  public byte[] runQueryInEmbeddedServer(Bindings bindings, String queryString)
+      throws ExecutionException, InterruptedException
+  {
+    final GremlinExecutor gremlinExecutor = embeddedServer.getGremlinExecutor();
+    //        final MessageTextSerializer serializer = embeddedServer.getGraphManager();
+
+    MessageTextSerializer serializer = serializers.get("application/json");
+
+    final CompletableFuture<Object> evalFuture = gremlinExecutor
+        .eval(queryString, null, bindings, FunctionUtils.wrapFunction(o -> {
+          final ResponseMessage responseMessage = ResponseMessage.build(uuidGen.generate())
+                                                                 .code(ResponseStatusCode.SUCCESS)
+                                                                 .result(IteratorUtils.asList(o)).create();
+
+          try
+          {
+            return Unpooled.wrappedBuffer(
+                serializer.serializeResponseAsString(responseMessage).getBytes(Charset.defaultCharset()));
+          }
+          catch (Exception ex)
+          {
+            //                logger.warn(String.format("Error during serialization for %s", responseMessage), ex);
+            throw ex;
+          }
+        }));
+
+    evalFuture.exceptionally(t -> {
+      if (t.getMessage() != null)
+      {
+        getLogger().error("Server Error " + t.getMessage());
+        throw new ProcessException(t);
+
+        //            sendError(ctx, INTERNAL_SERVER_ERROR, t.getMessage(), Optional.of(t));
+      }
+      else
+      {
+        getLogger().error(String.format("Error encountered evaluating script: %s", queryStr, Optional.of(t)));
+      }
+      return null;
+    });
+
+    ByteBuf buf = (ByteBuf) evalFuture.get();
+
+    if (buf != null)
+    {
+      return buf.array();
+    }
+    return new byte[0];
+  }
+
   public byte[] runQuery(Bindings bindings, String queryString)
       throws ExecutionException, InterruptedException, IOException, URISyntaxException
   {
@@ -776,58 +843,20 @@ public class PontusTinkerPopClient extends AbstractProcessor
     if (useEmbeddedServer && embeddedServer == null)
     {
       embeddedServer = createEmbeddedServer();
+      // Send a dummy query to warm up.
+      runQueryInEmbeddedServer(bindings, "1+1");
+
     }
     if (useEmbeddedServer && embeddedServer != null)
     {
-      final GremlinExecutor gremlinExecutor = embeddedServer.getGremlinExecutor();
-      //        final MessageTextSerializer serializer = embeddedServer.getGraphManager();
-
-      MessageTextSerializer serializer = serializers.get("application/json");
-
-      final CompletableFuture<Object> evalFuture = gremlinExecutor
-          .eval(queryString, null, bindings, FunctionUtils.wrapFunction(o -> {
-            final ResponseMessage responseMessage = ResponseMessage.build(uuidGen.generate())
-                .code(ResponseStatusCode.SUCCESS).result(IteratorUtils.asList(o)).create();
-
-            try
-            {
-              return Unpooled.wrappedBuffer(
-                  serializer.serializeResponseAsString(responseMessage).getBytes(Charset.defaultCharset()));
-            }
-            catch (Exception ex)
-            {
-              //                logger.warn(String.format("Error during serialization for %s", responseMessage), ex);
-              throw ex;
-            }
-          }));
-
-      evalFuture.exceptionally(t -> {
-        if (t.getMessage() != null)
-        {
-          getLogger().error("Server Error " + t.getMessage());
-          //                                    session.transfer(tempFlowFile, REL_FAILURE);
-
-          throw new ProcessException(t);
-
-          //            sendError(ctx, INTERNAL_SERVER_ERROR, t.getMessage(), Optional.of(t));
-        }
-        else
-        {
-          getLogger().error(String.format("Error encountered evaluating script: %s", queryStr, Optional.of(t)));
-        }
-        return null;
-      });
-
-      ByteBuf buf = (ByteBuf) evalFuture.get();
-
-      if (buf != null)
-      {
-        return buf.array();
-      }
+      return runQueryInEmbeddedServer(bindings, queryString);
 
     }
     else
     {
+      if (client == null){
+        createClient();
+      }
       Map<String, Object> props = new HashMap<>(bindings);
       //      getLogger().debug("Custer client : queryString ---> " + queryString + ", bindings ---> " + props);
       ResultSet res = client.submit(queryString, props);
@@ -835,14 +864,13 @@ public class PontusTinkerPopClient extends AbstractProcessor
       return getBytesFromResultSet(res);
     }
 
-    return new byte[0];
   }
 
   @Override public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException
   {
 
-    final ComponentLog log = this.getLogger();
-    FlowFile localFlowFile = null;
+    final ComponentLog log           = this.getLogger();
+    FlowFile           localFlowFile = null;
 
     try
     {
@@ -883,7 +911,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
   protected String getStackTrace(Throwable e)
   {
     StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
+    PrintWriter  pw = new PrintWriter(sw);
     e.printStackTrace(pw);
     return sw.toString();
   }

@@ -1,0 +1,89 @@
+{
+  "colMetaData": [
+    {
+      "colName": "emp_no",
+      "primaryKeyName": "dept_emp.emp_no",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 1,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "10001",
+        "10002",
+        "10003",
+        "10004",
+        "10005"
+      ]
+    },
+    {
+      "colName": "dept_no",
+      "primaryKeyName": "dept_emp.dept_no",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 4,
+      "ordinalPos": 2,
+      "defVal": "",
+      "colSize": 4,
+      "vals": [
+        "d005",
+        "d007",
+        "d004",
+        "d004",
+        "d003"
+      ]
+    },
+    {
+      "colName": "from_date",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 3,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "1986-06-26",
+        "1996-08-03",
+        "1995-12-03",
+        "1986-12-01",
+        "1989-09-12"
+      ]
+    },
+    {
+      "colName": "to_date",
+      "primaryKeyName": "",
+      "foreignKeyName": "",
+      "typeName": "",
+      "colRemarks": "",
+      "isAutoIncr": "NO",
+      "isGenerated": "NO",
+      "octetLen": 0,
+      "ordinalPos": 4,
+      "defVal": "",
+      "colSize": 10,
+      "vals": [
+        "9999-01-01",
+        "9999-01-01",
+        "9999-01-01",
+        "9999-01-01",
+        "9999-01-01"
+      ]
+    }
+  ],
+  "tableCatalog": "employees",
+  "tableName": "dept_emp",
+  "fqn": "employees.dept_emp",
+  "tableType": "TABLE",
+  "tableRemarks": ""
+}
