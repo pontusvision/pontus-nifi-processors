@@ -1,0 +1,55 @@
+version: '3'
+services:
+
+  pontus-sandbox.pontusvision.com:
+    image: "pontusvisiongdpr/pontus-ad-base"
+    domainname: pontusvision.com
+    ports:
+      - "389:389/udp"
+      - "389:389"
+      - "636:636"
+    entrypoint: /init.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "/readiness.sh"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+    restart: on-failure
+    privileged: true
+    hostname: pontus-sandbox
+    volumes:
+      - pki_vol:/etc/pki
+
+  nifi-ad:
+    image: "maven:3.6-jdk-8-alpine"
+    domainname: pontusvision.com
+    depends_on:
+      - pontus-sandbox.pontusvision.com
+
+    volumes:
+      - ../..:/sut
+      - ~/.m2:/root/.m2
+      - pki_vol:/etc/pki
+
+    ports:
+      - "5010:5010"
+
+    working_dir: /sut/nifi-pontus-gremlin-processor
+
+    command: >
+      /bin/bash -c "
+        echo Waiting for ad service start...;
+        while ! nc -z pontus-sandbox.pontusvision.com 636;
+        do
+          sleep 1;
+        done;
+        echo Connected!;
+        mvn -Dtest=PontusGetActiveDirectoryTest -Djavax.net.ssl.keyStorePassword=pa55word -Djavax.net.ssl.keyStore=/etc/pki/java/keystore.jks -Djavax.net.ssl.trustStore=/etc/pki/java/truststore.jks -Dmaven.surefire.debug='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5010 -Xnoagent -Djava.compiler=NONE' -DforkCount=0 test
+      "
+volumes:
+  pki_vol:
+
+
+
+
