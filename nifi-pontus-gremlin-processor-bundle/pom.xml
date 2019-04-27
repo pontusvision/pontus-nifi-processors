@@ -22,18 +22,11 @@
     <version>1.2</version>
     <packaging>pom</packaging>
 
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.min-version>3.0.5</maven.min-version>
-        <pontus-gdpr-graph.version>1.2.0</pontus-gdpr-graph.version>
-        <nifi.version>1.6.0</nifi.version>
-        <slf4j.version>1.7.25</slf4j.version>
-        <json-path-version>2.0.0</json-path-version>
-        <java-uuid-generator.version>3.1.4</java-uuid-generator.version>
-        <scribejava.version>6.2.0</scribejava.version>
-        <janusgraph.version>100-3.0</janusgraph.version>
-    </properties>
+    <parent>
+        <groupId>com.pontusvision</groupId>
+        <artifactId>pontus-nifi-processors</artifactId>
+        <version>1.2</version>
+    </parent>
 
     <modules>
         <module>nifi-pontus-gremlin-processor</module>

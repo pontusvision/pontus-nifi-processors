@@ -28,6 +28,11 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>com.unboundid</groupId>
+            <artifactId>unboundid-ldapsdk</artifactId>
+            <version>4.0.10</version>
+        </dependency>
 
 
         <dependency>
@@ -70,13 +75,27 @@
             <artifactId>janusgraph-berkeleyje</artifactId>
             <version>${janusgraph.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-io</groupId>
+                    <artifactId>commons-io</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-pontus-service-api</artifactId>
-            <version>1.0</version>
-        </dependency>
+        <!--<dependency>-->
+        <!--<groupId>org.apache.nifi</groupId>-->
+        <!--<artifactId>nifi-pontus-service-api</artifactId>-->
+        <!--<version>1.0</version>-->
+        <!--</dependency>-->
 
 
         <dependency>
@@ -88,6 +107,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
             <version>${nifi.version}</version>
+
         </dependency>
 
 
@@ -109,6 +129,25 @@
             <artifactId>nifi-record</artifactId>
             <version>${nifi.version}</version>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.jayway.jsonpath</groupId>
+                    <artifactId>json-path</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-text</artifactId>
+                </exclusion>
+            </exclusions>
+
 
         </dependency>
 
@@ -116,6 +155,24 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-service-api</artifactId>
             <version>${nifi.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.jayway.jsonpath</groupId>
+                    <artifactId>json-path</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-text</artifactId>
+                </exclusion>
+            </exclusions>
             <scope>compile</scope>
 
         </dependency>
@@ -146,12 +203,6 @@
 
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <version>${nifi.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.10</version>
@@ -178,6 +229,14 @@
             <version>${nifi.version}</version>
             <scope>test</scope>
             <exclusions>
+                <exclusion>
+                    <groupId>com.jayway.jsonpath</groupId>
+                    <artifactId>json-path</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-text</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>commons-codec</groupId>
                     <artifactId>commons-codec</artifactId>
@@ -237,6 +296,23 @@
             <version>${nifi.version}</version>
             <scope>test</scope>
             <exclusions>
+                <exclusion>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.jayway.jsonpath</groupId>
+                    <artifactId>json-path</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-text</artifactId>
+                </exclusion>
+
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
@@ -341,7 +417,7 @@
                         <image>
                             <name>nowsci/samba-domain</name>
                             <!--<build>-->
-                                <!--<dockerFile>${project.basedir}/Dockerfile</dockerFile>-->
+                            <!--<dockerFile>${project.basedir}/Dockerfile</dockerFile>-->
                             <!--</build>-->
                             <run>
                                 <env>
@@ -356,9 +432,9 @@
                                     <port>389:389/udp</port>
                                 </ports>
                                 <!--<wait>-->
-                                    <!--&lt;!&ndash; Check for this URL to return a 200 return code .... &ndash;&gt;-->
-                                    <!--<url>http://localhost:8080/wizard</url>-->
-                                    <!--<time>120000</time>-->
+                                <!--&lt;!&ndash; Check for this URL to return a 200 return code .... &ndash;&gt;-->
+                                <!--<url>http://localhost:8080/wizard</url>-->
+                                <!--<time>120000</time>-->
                                 <!--</wait>-->
                             </run>
                         </image>

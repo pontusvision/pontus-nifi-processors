@@ -20,7 +20,9 @@ package com.pontusvision.nifi.processors;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.sun.jndi.ldap.LdapCtx;
+import com.unboundid.asn1.ASN1OctetString;
+import com.unboundid.ldap.sdk.*;
+import com.unboundid.util.ssl.SSLUtil;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,17 +37,16 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.keycloak.common.util.KeystoreUtil;
 
 import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.naming.event.EventContext;
-import javax.naming.event.NamingExceptionEvent;
-import javax.naming.event.NamingListener;
-import javax.naming.ldap.UnsolicitedNotificationEvent;
-import javax.naming.ldap.UnsolicitedNotificationListener;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -98,12 +99,19 @@ public class PontusGetActiveDirectory extends AbstractProcessor
       .required(true)
       .defaultValue("ldap://localhost:389/o=JNDItutorial").sensitive(false).expressionLanguageSupported(true).build();
 
-  public static final PropertyDescriptor AD_SUBSCRIPTION = new PropertyDescriptor.Builder()
-      .name("AD_SUBSCRIPTION")
+  public static final PropertyDescriptor AD_SUBSCRIPTION_DN = new PropertyDescriptor.Builder()
+      .name("AD_SUBSCRIPTION_DN")
       .displayName("Active Directory Distinguished Name to subscribe to events")
       .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
       .description("The part of the distinguished name (DN) AD Structure to subscribe for changes").required(true)
       .defaultValue("ou=People").sensitive(false).expressionLanguageSupported(true).build();
+
+  public static final PropertyDescriptor AD_SUBSCRIPTION_FILTER = new PropertyDescriptor.Builder()
+      .name("AD_SUBSCRIPTION_FILTER")
+      .displayName("Active Directory Filter String")
+      .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+      .description("The string to filter subscription results").required(true)
+      .defaultValue("(objectclass = *)").sensitive(false).expressionLanguageSupported(true).build();
 
   public static final PropertyDescriptor AD_SUBSCRIPTION_SCOPE = new PropertyDescriptor.Builder()
       .name("AD_SUBSCRIPTION_SCOPE")
@@ -118,44 +126,23 @@ public class PontusGetActiveDirectory extends AbstractProcessor
       .required(true)
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).defaultValue("1000").build();
 
-  private        EventContext ctx;
-  private static Gson         gson = new GsonBuilder().disableHtmlEscaping().create();
+  //  private        EventContext ctx;
+  ASN1OctetString    cookie = null;
+  LDAPConnection     connection;
+  LDAPConnectionPool pool;
+  ExecutorService    executorService;
+  AsyncRequestID     asyncSearchId;
+  private static Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
-  private NamingListener listener = new UnsolicitedNotificationListener()
+  private AsyncSearchResultListener listener    = new AsyncSearchResultListener()
   {
-    @Override public void namingExceptionThrown(NamingExceptionEvent evt)
+    @Override public void searchEntryReturned(SearchResultEntry searchEntry)
     {
       LDAPEvent event = new LDAPEvent();
-      event.namingExceptionEvent = new NamingExceptionEvent(evt.getEventContext(), evt.getException());
-      event.notificationEvent = null;
-      try
-      {
-        event.name = evt.getEventContext().getNameInNamespace();
-      }
-      catch (NamingException e)
-      {
-        /* e.printStackTrace(); */
-      }
-
-      if (!ldapEventErrors.offer(event))
-      {
-        event.error = "Failed to queue LDAP error; queue is full";
-        getLogger().error(event.error, evt.getException());
-        //noinspection StatementWithEmptyBody
-        while (!ldapEventErrors.offer(event))
-        { /* loop forever */}
-
-      }
-    }
-
-    @Override public void notificationReceived(UnsolicitedNotificationEvent evt)
-    {
-      LDAPEvent event = new LDAPEvent();
-      event.notificationEvent = new UnsolicitedNotificationEvent(evt.getSource(), evt.getNotification());
-      event.namingExceptionEvent = null;
+      event.searchRes = new SearchResultEntry(searchEntry);
       event.error = null;
 
-      event.name = evt.getSource().toString();
+      event.name = searchEntry.getDN();
 
       if (!ldapEvents.offer(event))
       {
@@ -167,7 +154,18 @@ public class PontusGetActiveDirectory extends AbstractProcessor
       }
 
     }
+
+    @Override public void searchReferenceReturned(SearchResultReference searchReference)
+    {
+
+    }
+
+    @Override public void searchResultReceived(AsyncRequestID requestID, SearchResult searchResult)
+    {
+
+    }
   };
+  private boolean                   keepLooping = true;
 
   public enum SubscritptionScope
   {
@@ -178,10 +176,9 @@ public class PontusGetActiveDirectory extends AbstractProcessor
 
   class LDAPEvent
   {
-    NamingExceptionEvent         namingExceptionEvent;
-    UnsolicitedNotificationEvent notificationEvent;
-    String                       error;
-    String                       name;
+    public SearchResultEntry searchRes;
+    public String            error;
+    public String            name;
   }
 
   /*
@@ -201,7 +198,7 @@ public class PontusGetActiveDirectory extends AbstractProcessor
     sendError(session, e.getMessage());
   }
 
-  public void handleError(ProcessSession session, LDAPEvent e) throws NamingException
+  public void handleError(ProcessSession session, LDAPEvent e) throws LDAPException
   {
     if (e != null)
     {
@@ -245,7 +242,10 @@ public class PontusGetActiveDirectory extends AbstractProcessor
     flowFile = session.write(
         flowFile,
         out -> {
-          out.write(str.getBytes());
+          if (str != null)
+          {
+            out.write(str.getBytes());
+          }
         });
     session.transfer(flowFile, rel);
   }
@@ -257,7 +257,7 @@ public class PontusGetActiveDirectory extends AbstractProcessor
     props.add(AD_CRED_PASS);
     props.add(AD_PROVIDER_URL);
     props.add(AD_SUBSCRIPTION_SCOPE);
-    props.add(AD_SUBSCRIPTION);
+    props.add(AD_SUBSCRIPTION_DN);
     props.add(AD_EVENT_QUEUE_SIZE);
     props.add(AD_INITIAL_CONTEXT_FACTORY);
     return Collections.unmodifiableList(props);
@@ -269,24 +269,30 @@ public class PontusGetActiveDirectory extends AbstractProcessor
   }
 
   @OnStopped
-  public void unsubscribeToLDAP() throws NamingException
+  public void unsubscribeToLDAP() throws LDAPException
   {
     // Not strictly necessary if we're going to close context anyhow
 
-    if (ctx != null)
+    if (connection != null)
     {
-      ctx.removeNamingListener(listener);
+      keepLooping = false;
 
+      cookie = null;
+      executorService.shutdown();
+
+      connection.abandon(asyncSearchId);
+      connection.close();
       // Close context when we're done
-      ctx.close();
-      ctx = null;
+      connection = null;
+
     }
 
   }
 
-  void subscribeToLDAP(ProcessContext context, ProcessSession session) throws NamingException
+  void subscribeToLDAP(ProcessContext context, ProcessSession session)
+      throws Exception
   {
-    if (ctx == null)
+    if (connection == null)
     {
       ldapEvents = new LinkedBlockingQueue<>(context.getProperty(AD_EVENT_QUEUE_SIZE).asInteger());
       ldapEventErrors = new LinkedBlockingQueue<>(context.getProperty(AD_EVENT_QUEUE_SIZE).asInteger());
@@ -297,28 +303,164 @@ public class PontusGetActiveDirectory extends AbstractProcessor
 
       env.put(Context.PROVIDER_URL,
           context.getProperty(AD_PROVIDER_URL).evaluateAttributeExpressions(session.get()).getValue());
-      env.put(Context.SECURITY_CREDENTIALS, context.getProperty(AD_CRED_PASS).evaluateAttributeExpressions(session.get()).getValue());
-      env.put(Context.SECURITY_PRINCIPAL, context.getProperty(AD_CRED_USER).evaluateAttributeExpressions(session.get()).getValue());
+      env.put(Context.SECURITY_CREDENTIALS,
+          context.getProperty(AD_CRED_PASS).evaluateAttributeExpressions(session.get()).getValue());
+      env.put(Context.SECURITY_PRINCIPAL,
+          context.getProperty(AD_CRED_USER).evaluateAttributeExpressions(session.get()).getValue());
 
       // Get event context for registering listener
-      String subscriptionStr = context.getProperty(AD_SUBSCRIPTION).evaluateAttributeExpressions(session.get())
+      String subscriptionStr = context.getProperty(AD_SUBSCRIPTION_DN).evaluateAttributeExpressions(session.get())
                                       .getValue();
-      ctx = (EventContext)
-          (new InitialContext(env).lookup(subscriptionStr));
 
+      String bindDN       = env.get(Context.SECURITY_PRINCIPAL).toString();
+      String bindPassword = env.get(Context.SECURITY_CREDENTIALS).toString();
+
+      String urlStr = env.get(Context.PROVIDER_URL).toString();
+
+      URI ldapURI = new URI(urlStr);
+
+      String serverAddress = ldapURI.getHost();
+      int    serverPort    = ldapURI.getPort();
+
+      if ("ldaps".equalsIgnoreCase(ldapURI.getScheme()))
+      {
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+        tmf.init(
+            KeystoreUtil.loadKeyStore(System.getProperty("javax.net.ssl.trustStore", "/etc/pki/java/truststore.jks")
+                , System.getProperty("javax.net.ssl.trustStorePassword", "changeit")));
+        TrustManager[]        trustManagers     = tmf.getTrustManagers();
+        SSLUtil               sslUtil           = new SSLUtil(trustManagers);
+        SSLSocketFactory      socketFactory     = sslUtil.createSSLSocketFactory();
+        LDAPConnectionOptions connectionOptions = new LDAPConnectionOptions();
+        connectionOptions.setFollowReferrals(true);
+
+        connection = new LDAPConnection(socketFactory, connectionOptions, serverAddress, serverPort, bindDN,
+            bindPassword);
+
+      }
+      else
+      {
+        LDAPConnectionOptions connectionOptions = new LDAPConnectionOptions();
+        connectionOptions.setFollowReferrals(true);
+        connection = new LDAPConnection(connectionOptions,
+            serverAddress, serverPort, bindDN, bindPassword);
+
+      }
+      pool = new LDAPConnectionPool(connection, 1);
+
+      // controller 1.2.840.113556.1.4.528
       String scopeTypeStr = context.getProperty(AD_SUBSCRIPTION_SCOPE)
                                    .evaluateAttributeExpressions(session.get()).getValue();
-      SubscritptionScope scopeType    = Enum.valueOf(SubscritptionScope.class, scopeTypeStr);
-      int                scopeTypeNum = scopeType.ordinal();
-      // Create listener
+      SubscritptionScope scopeType   = Enum.valueOf(SubscritptionScope.class, scopeTypeStr);
+      SearchScope        searchScope = SearchScope.valueOf(scopeType.ordinal());
 
-      // Register listener with context (all targets equivalent)
-      ctx.addNamingListener("", scopeTypeNum, listener);
+      SearchRequest searchRequest = new SearchRequest(
+          listener,
+          subscriptionStr,  // baseDN
+          searchScope,
+          Filter.create("ObjectClass=*"), null);
 
-      LdapCtx retVal = (LdapCtx) ctx.lookup("");
-      LDAPEvent event = new LDAPEvent();
-      event.name = retVal.getNameInNamespace();
-      sendSuccess(session, gson.toJson(event,LDAPEvent.class));
+      Control myControl = new Control("1.2.840.113556.1.4.528");
+      searchRequest.addControl(myControl);
+      asyncSearchId = connection.asyncSearch(searchRequest);
+
+      SearchRequest searchRequestImmediate = new SearchRequest(
+          subscriptionStr,  // baseDN
+          searchScope,
+          //          Filter.createEqualityFilter("objectClass", "*")
+          Filter.create("objectclass=*")
+          , null);
+
+      SearchResult res = connection.search(searchRequestImmediate);
+
+      for (final SearchResultEntry updatedEntry :
+          res.getSearchEntries())
+      {
+        listener.searchEntryReturned(updatedEntry);
+      }
+
+      //      executorService = Executors.newFixedThreadPool(1);
+
+      //      executorService.execute(() -> {
+      //
+      //        //        final SearchRequest searchRequest = new SearchRequest("dc=example,dc=com",
+      //        //            SearchScope.SUB, Filter.createEqualityFilter("objectClass", "User"));
+      //
+      //        // Define the components that will be included in the DirSync request
+      //        // control.
+      //
+      //        final int flags = ActiveDirectoryDirSyncControl.FLAG_INCREMENTAL_VALUES |
+      //            ActiveDirectoryDirSyncControl.FLAG_OBJECT_SECURITY;
+      //
+      //        // Create a loop that will be used to keep polling for changes.
+      //        while (keepLooping)
+      //        {
+      //          try
+      //          {
+      //            // Update the controls that will be used for the search request.
+      ////            searchRequestImmediate.setControls(new ActiveDirectoryDirSyncControl(true, flags,
+      ////                5000, cookie));
+      //
+      //            // Process the search and get the response control.
+      //            asyncSearchId = connection.asyncSearch(searchRequest);
+      //
+      ////
+      ////            ActiveDirectoryDirSyncControl dirSyncResponse =
+      ////                ActiveDirectoryDirSyncControl.get(searchResult);
+      ////            cookie = dirSyncResponse.getCookie();
+      //
+      //            // Process the search result entries because they represent entries that
+      //            // have been created or modified.
+      //            if (asyncSearchId != null)
+      //            {
+      ////              for (final SearchResultEntry updatedEntry :
+      ////                  searchResult.getSearchEntries())
+      ////              {
+      ////                listener.searchEntryReturned(updatedEntry);
+      ////              }
+      ////              connection.pr
+      //            }
+      //            // If the client might want to continue the search even after shutting
+      //            // down and starting back up later, then persist the cookie now.
+      //          }
+      //          catch (LDAPException e)
+      //          {
+      //            LDAPEvent event = new LDAPEvent();
+      //            event.error = e.toString();
+      //
+      //            event.name = e.getMatchedDN();
+      //
+      //            if (!ldapEventErrors.offer(event))
+      //            {
+      //              event.error = "Failed to queue LDAP event; queue is full";
+      //              getLogger().error(event.error);
+      //              //noinspection StatementWithEmptyBody
+      //              while (!ldapEventErrors.offer(event))
+      //              { /* loop forever */}
+      //            }
+      //          }
+      //        }
+      //
+      //        //          pool.processRequests(requests, true);
+      //
+      //      });
+
+      //      pool.processRequest
+
+      //      SearchResult res = connection.search(searchRequest);
+      //      //      LdapCtx retVal = (LdapCtx) ctx.lookup("");
+      //      LDAPEvent event = new LDAPEvent();
+      //      event.name = res.getMatchedDN();
+      //
+      //      event.searchRes = res;
+      //      //      Attributes retVal = ((LdapCtx) ctx).getAttributes(subscriptionStr);
+      //
+      //      // Create listener
+      //
+      //      // Register listener with context (all targets equivalent)
+      //      //      ctx.addNamingListener("", scopeTypeNum, listener);
+      //
+      //      sendSuccess(session, gson.toJson(event, LDAPEvent.class));
 
     }
   }
@@ -349,7 +491,7 @@ public class PontusGetActiveDirectory extends AbstractProcessor
       }
 
     }
-    catch (NamingException e)
+    catch (Exception e)
     {
       sendError(session, e);
     }
