@@ -71,7 +71,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.janusgraph</groupId>
+            <groupId>com.pontusvision</groupId>
             <artifactId>janusgraph-berkeleyje</artifactId>
             <version>${janusgraph.version}</version>
             <scope>test</scope>
