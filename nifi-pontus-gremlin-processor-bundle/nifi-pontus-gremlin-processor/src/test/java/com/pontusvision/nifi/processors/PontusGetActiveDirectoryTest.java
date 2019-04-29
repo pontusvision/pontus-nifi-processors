@@ -5,11 +5,11 @@
  */
 package com.pontusvision.nifi.processors;
 
-import com.github.trevershick.test.ldap.LdapServerResource;
-import com.github.trevershick.test.ldap.annotations.LdapAttribute;
-import com.github.trevershick.test.ldap.annotations.LdapConfiguration;
-import com.github.trevershick.test.ldap.annotations.LdapEntry;
-import com.github.trevershick.test.ldap.annotations.Ldif;
+//import com.github.trevershick.test.ldap.LdapServerResource;
+//import com.github.trevershick.test.ldap.annotations.LdapAttribute;
+//import com.github.trevershick.test.ldap.annotations.LdapConfiguration;
+//import com.github.trevershick.test.ldap.annotations.LdapEntry;
+//import com.github.trevershick.test.ldap.annotations.Ldif;
 import com.unboundid.ldap.sdk.Entry;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -32,109 +32,109 @@ import static org.junit.Assert.assertEquals;
  * @author phillip
  */
 
-@LdapConfiguration(
-    bindDn = "cn=Directory Manager",
-    password = "mypass",
-    port = 11111,
-    //    base = @LdapEntry(dn = "dc=myroot",
-    //        objectclass = { "top", "domain" }),
-    ldifs = @Ldif("/ldap-tests/test.ldiff")
-)
+//@LdapConfiguration(
+//    bindDn = "cn=Directory Manager",
+//    password = "mypass",
+//    port = 11111,
+//    //    base = @LdapEntry(dn = "dc=myroot",
+//    //        objectclass = { "top", "domain" }),
+//    ldifs = @Ldif("/ldap-tests/test.ldiff")
+//)
 public class PontusGetActiveDirectoryTest
 {
-  class PontusLDAPAttribute implements LdapAttribute
-  {
-
-    private String name;
-
-    public PontusLDAPAttribute(String name, String[] value)
-    {
-      this.name = name;
-      this.value = value;
-    }
-
-    private String[] value;
-
-    @Override public String name()
-    {
-      return name;
-    }
-
-    @Override public String[] value()
-    {
-      return value;
-    }
-
-    @Override public Class<? extends Annotation> annotationType()
-    {
-      return PontusLDAPAttribute.class;
-    }
-  }
-
-  class PontusLdapEntry implements LdapEntry
-  {
-
-    String          dn;
-    String[]        objectClass;
-    LdapAttribute[] attributes;
-
-    public PontusLdapEntry(String dn, String[] objectClass,
-                           LdapAttribute[] attributes)
-    {
-      this.dn = dn;
-      this.objectClass = objectClass;
-      this.attributes = attributes;
-    }
-
-    @Override public String dn()
-    {
-      return dn;
-    }
-
-    @Override public String[] objectclass()
-    {
-      return objectClass;
-    }
-
-    @Override public LdapAttribute[] attributes()
-    {
-      return attributes;
-    }
-
-    @Override public Class<? extends Annotation> annotationType()
-    {
-      return PontusLdapEntry.class;
-    }
-  }
-
-  private LdapServerResource server;
+//  class PontusLDAPAttribute implements LdapAttribute
+//  {
+//
+//    private String name;
+//
+//    public PontusLDAPAttribute(String name, String[] value)
+//    {
+//      this.name = name;
+//      this.value = value;
+//    }
+//
+//    private String[] value;
+//
+//    @Override public String name()
+//    {
+//      return name;
+//    }
+//
+//    @Override public String[] value()
+//    {
+//      return value;
+//    }
+//
+//    @Override public Class<? extends Annotation> annotationType()
+//    {
+//      return PontusLDAPAttribute.class;
+//    }
+//  }
+//
+//  class PontusLdapEntry implements LdapEntry
+//  {
+//
+//    String          dn;
+//    String[]        objectClass;
+//    LdapAttribute[] attributes;
+//
+//    public PontusLdapEntry(String dn, String[] objectClass,
+//                           LdapAttribute[] attributes)
+//    {
+//      this.dn = dn;
+//      this.objectClass = objectClass;
+//      this.attributes = attributes;
+//    }
+//
+//    @Override public String dn()
+//    {
+//      return dn;
+//    }
+//
+//    @Override public String[] objectclass()
+//    {
+//      return objectClass;
+//    }
+//
+//    @Override public LdapAttribute[] attributes()
+//    {
+//      return attributes;
+//    }
+//
+//    @Override public Class<? extends Annotation> annotationType()
+//    {
+//      return PontusLdapEntry.class;
+//    }
+//  }
+//
+//  private LdapServerResource server;
 
   @Before
   public void startup() throws Exception
   {
-    server = new LdapServerResource(this).start();
+//    server = new LdapServerResource(this).start();
   }
 
   @After
   public void shutdown()
   {
-    server.stop();
+//    server.stop();
   }
 
-  /**
-   * Build an LDAP entry from the @LdapEntry annotation
-   */
-  private Entry entry(LdapEntry ldapEntry)
-  {
-    Entry e = new Entry(ldapEntry.dn());
-    e.addAttribute("objectClass", ldapEntry.objectclass());
-    LdapAttribute[] attrs = ldapEntry.attributes();
-    for (int i = 0; attrs != null && i < attrs.length; i++)
-    {
-      e.addAttribute(attrs[i].name(), attrs[i].value());
-    }
-    return e;
-  }
+//  /**
+//   * Build an LDAP entry from the @LdapEntry annotation
+//   */
+//  private Entry entry(LdapEntry ldapEntry)
+//  {
+//    Entry e = new Entry(ldapEntry.dn());
+//    e.addAttribute("objectClass", ldapEntry.objectclass());
+//    LdapAttribute[] attrs = ldapEntry.attributes();
+//    for (int i = 0; attrs != null && i < attrs.length; i++)
+//    {
+//      e.addAttribute(attrs[i].name(), attrs[i].value());
+//    }
+//    return e;
+//  }
 
   public void changeLDAP(String userId) throws NamingException
   {
