@@ -465,7 +465,7 @@
                             <goal>down</goal>
                         </goals>
                         <configuration>
-                            <composeFile>${project.basedir}/docker-compose.yml</composeFile>
+                            <composeFile>${project.basedir}/docker-compose/docker-compose.yml</composeFile>
                             <removeVolumes>true</removeVolumes>
                         </configuration>
                     </execution>
