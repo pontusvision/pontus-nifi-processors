@@ -194,6 +194,7 @@
             <version>${nifi.version}</version>
             <scope>test</scope>
             <exclusions>
+                <exclusion><groupId>org.ow2.asm</groupId><artifactId>asm</artifactId></exclusion>
                 <exclusion>
                     <groupId>junit</groupId>
                     <artifactId>junit</artifactId>
