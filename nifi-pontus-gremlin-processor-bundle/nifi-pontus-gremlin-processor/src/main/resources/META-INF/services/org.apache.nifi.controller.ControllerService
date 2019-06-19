@@ -14,3 +14,4 @@
 # limitations under the License.
 com.pontusvision.nifi.processors.PontusTinkerpopControllerService
 com.pontusvision.nifi.processors.LeakyBucketThrottleControllerService
+com.pontusvision.nifi.processors.PontusOauth20ControllerService

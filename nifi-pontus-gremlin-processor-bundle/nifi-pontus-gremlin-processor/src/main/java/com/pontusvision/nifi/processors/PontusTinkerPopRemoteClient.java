@@ -107,6 +107,10 @@ public class PontusTinkerPopRemoteClient extends PontusTinkerPopClient
     {
       queryAttribPrefixStr = newValue;
     }
+    else if (descriptor.equals(TINKERPOP_CLIENT_CONF_FILE_URI))
+    {
+      confFileURI = newValue;
+    }
     else if (descriptor.equals(WAITING_TIME))
     {
       timeoutInSecs = Integer.parseInt(newValue);
@@ -192,7 +196,7 @@ public class PontusTinkerPopRemoteClient extends PontusTinkerPopClient
       Map<String, String> allAttribs = flowfile.getAttributes();
       session.remove(flowfile);
 
-      String queryString = getQueryStr(session);
+      String queryString = getQueryStr(context, allAttribs);
 
       localFlowFile = session.create();
       localFlowFile = session.putAllAttributes(localFlowFile, allAttribs);

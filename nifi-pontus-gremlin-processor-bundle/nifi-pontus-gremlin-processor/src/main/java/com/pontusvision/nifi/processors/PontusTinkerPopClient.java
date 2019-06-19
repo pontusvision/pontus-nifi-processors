@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -105,14 +106,14 @@ public class PontusTinkerPopClient extends AbstractProcessor
               + " If this is set to true, the Tinkerpop Client configuration URI is used to point to the gremlin-server.yml"
               + " file that will configure an embedded server.").required(false)
       .addValidator(StandardValidators.BOOLEAN_VALIDATOR).defaultValue("false")
-      //            .identifiesControllerService(HBaseClientService.class)
+      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
       .build();
 
   final PropertyDescriptor TINKERPOP_CLIENT_CONF_FILE_URI = new PropertyDescriptor.Builder()
       .name("Tinkerpop Client configuration URI").description(
           "Specifies the configuration file to configure this connection to tinkerpop (if embedded, this is the gremlin-server.yml file).")
       .required(false).addValidator(StandardValidators.URI_VALIDATOR)
-      //            .identifiesControllerService(HBaseClientService.class)
+      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
       .build();
 
   final PropertyDescriptor TINKERPOP_QUERY_PARAM_PREFIX = new PropertyDescriptor.Builder()
@@ -120,7 +121,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
           "Any flowfile attributes with this prefix will be sent to tinkerpop (with the prefix included)."
               + "  NOTE: This is ignored when using the Record-based client.").required(false).defaultValue("pg_")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      //            .identifiesControllerService(HBaseClientService.class)
+      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
       .build();
 
   final PropertyDescriptor TINKERPOP_ALIAS = new PropertyDescriptor.Builder().name("Tinkerpop graph alias")
@@ -141,9 +142,9 @@ public class PontusTinkerPopClient extends AbstractProcessor
                                                                                             StandardValidators.NUMBER_VALIDATOR)
                                                                                         .build();
 
-  protected int timeoutInSecs = 20;
-  public JanusGraph graph;
-  final MessageTextSerializer messageTextSerializer = new GraphSONMessageSerializerV3d0();
+  protected int                   timeoutInSecs         = 20;
+  public    JanusGraph            graph;
+  final     MessageTextSerializer messageTextSerializer = new GraphSONMessageSerializerV3d0();
 
   //    static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
 
@@ -156,36 +157,35 @@ public class PontusTinkerPopClient extends AbstractProcessor
   //            .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
   //            .build();
 
-  final PropertyDescriptor TINKERPOP_QUERY_STR = new PropertyDescriptor.Builder().name("Tinkerpop Query")
-                                                                                 .description(
-                                                                                     "A Tinkerpop 3.3.0 query.  ")
-                                                                                 .required(true)
-                                                                                 .expressionLanguageSupported(false)
-                                                                                 .defaultValue(
-                                                                                     "v1 = g.addV(\"person\").property(id, userID1).property(\"name\", userName1).property(\"age\", userAge1).next()\n"
-                                                                                         + "v2 = g.addV(\"software\").property(id, userID2).property(\"name\", userName2).property(\"lang\", userLang2).next()\n"
-                                                                                         + "g.addE(\"created\").from(v1).to(v2).property(id, relId1).property(\"weight\", relWeight1)\n")
-                                                                                 .addValidator(
-                                                                                     (subject, input, context) -> {
-                                                                                       boolean                  isAscii = CharMatcher.ASCII
-                                                                                           .matchesAllOf(input);
-                                                                                       ValidationResult.Builder builder = new ValidationResult.Builder();
+  final PropertyDescriptor TINKERPOP_QUERY_STR = new PropertyDescriptor
+      .Builder()
+      .name("Tinkerpop Query")
+      .description(          "A Tinkerpop 3.3.0 query.  ")
+      .required(true)
+      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+      .defaultValue( "v1 = g.addV(\"person\").property(id, userID1).property(\"name\", userName1).property(\"age\", userAge1).next()\n"
+              + "v2 = g.addV(\"software\").property(id, userID2).property(\"name\", userName2).property(\"lang\", userLang2).next()\n"
+              + "g.addE(\"created\").from(v1).to(v2).property(id, relId1).property(\"weight\", relWeight1)\n")
+      .addValidator( (subject, input, context) -> {
+            boolean isAscii = CharMatcher.ASCII
+                .matchesAllOf(input);
+            ValidationResult.Builder builder = new ValidationResult.Builder();
 
-                                                                                       builder.valid(isAscii);
-                                                                                       builder.input(input);
-                                                                                       builder.subject(subject);
+            builder.valid(isAscii);
+            builder.input(input);
+            builder.subject(subject);
 
-                                                                                       if (!isAscii)
-                                                                                       {
-                                                                                         builder.explanation(
-                                                                                             "Found non-ascii characters in the string; perhaps you copied and pasted from a word doc or web site?");
-                                                                                       }
+            if (!isAscii)
+            {
+              builder.explanation(
+                  "Found non-ascii characters in the string; perhaps you copied and pasted from a word doc or web site?");
+            }
 
-                                                                                       ValidationResult res = builder
-                                                                                           .build();
+            ValidationResult res = builder
+                .build();
 
-                                                                                       return res;
-                                                                                     }).build();
+            return res;
+          }).build();
 
   final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
                                                              .description(
@@ -210,8 +210,8 @@ public class PontusTinkerPopClient extends AbstractProcessor
   EthernetAddress    addr    = EthernetAddress.fromInterface();
   TimeBasedGenerator uuidGen = Generators.timeBasedGenerator(addr);
 
-  Boolean               useEmbeddedServer = true;
-  public ServerGremlinExecutor embeddedServer    = null;
+  Boolean useEmbeddedServer = true;
+  public ServerGremlinExecutor embeddedServer = null;
 
   static ClusterClientService clusterClientService;
   //  Cluster cluster = null;
@@ -322,7 +322,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
       timeoutInSecs = Integer.parseInt(newValue);
     }
 
-//    createClient(confFileURI, useEmbeddedServer);
+    //    createClient(confFileURI, useEmbeddedServer);
 
   }
 
@@ -471,14 +471,14 @@ public class PontusTinkerPopClient extends AbstractProcessor
     String gconfFileStr = (String) settings.graphs
         .getOrDefault("graph", "/opt/pontus/pontus-graph/current/conf/janusgraph-hbase-es.properties");
 
-    File                 gconfFile = new File(gconfFileStr);
-//    CommonsConfiguration conf      = getLocalConfiguration(gconfFile, null, null);
+    File gconfFile = new File(gconfFileStr);
+    //    CommonsConfiguration conf      = getLocalConfiguration(gconfFile, null, null);
 
-//    graph = JanusGraphFactory.open(conf);
+    //    graph = JanusGraphFactory.open(conf);
 
     embeddedServer = new ServerGremlinExecutor(settings, null, null);
-//    embeddedServer.getGraphManager().putTraversalSource("g", graph.traversal());
-//    embeddedServer.getGraphManager().putGraph("graph", graph);
+    //    embeddedServer.getGraphManager().putTraversalSource("g", graph.traversal());
+    //    embeddedServer.getGraphManager().putGraph("graph", graph);
 
     configureSerializers();
 
@@ -747,6 +747,10 @@ public class PontusTinkerPopClient extends AbstractProcessor
     return bindings;
   }
 
+  public String getQueryStr(ProcessContext ctx, Map<String,String> attribs){
+    return ctx.getProperty(TINKERPOP_QUERY_STR).evaluateAttributeExpressions(attribs).getValue();
+  }
+
   public String getQueryStr(ProcessSession session)
   {
     return queryStr;
@@ -854,7 +858,8 @@ public class PontusTinkerPopClient extends AbstractProcessor
     }
     else
     {
-      if (client == null){
+      if (client == null)
+      {
         createClient();
       }
       Map<String, Object> props = new HashMap<>(bindings);
@@ -888,7 +893,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
       Map<String, String> allAttribs = flowfile.getAttributes();
       session.remove(flowfile);
 
-      String queryString = getQueryStr(session);
+      String queryString = getQueryStr(context,allAttribs);
 
       localFlowFile = session.create();
       localFlowFile = session.putAllAttributes(localFlowFile, allAttribs);
