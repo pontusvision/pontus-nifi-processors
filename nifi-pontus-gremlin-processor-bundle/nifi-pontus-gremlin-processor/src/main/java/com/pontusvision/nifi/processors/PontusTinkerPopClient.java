@@ -110,10 +110,13 @@ public class PontusTinkerPopClient extends AbstractProcessor
       .build();
 
   final PropertyDescriptor TINKERPOP_CLIENT_CONF_FILE_URI = new PropertyDescriptor.Builder()
-      .name("Tinkerpop Client configuration URI").description(
-          "Specifies the configuration file to configure this connection to tinkerpop (if embedded, this is the gremlin-server.yml file).")
-      .required(false).addValidator(StandardValidators.URI_VALIDATOR)
+      .name("Tinkerpop Client configuration URI")
+      .description("Specifies the configuration file to configure this connection to tinkerpop "
+          + "(if embedded, this is the gremlin-server.yml file).")
+      .required(false)
+      .addValidator(StandardValidators.URI_VALIDATOR)
       .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+      .defaultValue("file:///opt/nifi/nifi-current/conf/client.yml")
       .build();
 
   final PropertyDescriptor TINKERPOP_QUERY_PARAM_PREFIX = new PropertyDescriptor.Builder()
@@ -124,23 +127,24 @@ public class PontusTinkerPopClient extends AbstractProcessor
       .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
       .build();
 
-  final PropertyDescriptor TINKERPOP_ALIAS = new PropertyDescriptor.Builder().name("Tinkerpop graph alias")
-                                                                             .description(
-                                                                                 "This will create an alias of g to any pre-configured graph in the server.")
-                                                                             .required(true)
-                                                                             .defaultValue("g1").addValidator(
-          StandardValidators.NON_EMPTY_VALIDATOR)
-                                                                             //            .identifiesControllerService(HBaseClientService.class)
-                                                                             .build();
+  final PropertyDescriptor TINKERPOP_ALIAS = new PropertyDescriptor
+      .Builder()
+      .name("Tinkerpop graph alias")
+      .description("This will create an alias of g to any pre-configured graph in the server.")
+      .required(true)
+      .defaultValue("g1")
+      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+      //            .identifiesControllerService(HBaseClientService.class)
+      .build();
 
-  public static final PropertyDescriptor WAITING_TIME = new PropertyDescriptor.Builder().name("ClientTimeoutInSeconds")
-                                                                                        .description(
-                                                                                            "Specifies client timeout (in seconds) waiting for a remote Gremlin query response.")
-                                                                                        .required(true)
-                                                                                        .defaultValue("20")
-                                                                                        .addValidator(
-                                                                                            StandardValidators.NUMBER_VALIDATOR)
-                                                                                        .build();
+  public static final PropertyDescriptor WAITING_TIME = new PropertyDescriptor
+      .Builder()
+      .name("ClientTimeoutInSeconds")
+      .description("Specifies client timeout (in seconds) waiting for a remote Gremlin query response.")
+      .required(true)
+      .defaultValue("20")
+      .addValidator(StandardValidators.NUMBER_VALIDATOR)
+      .build();
 
   protected int                   timeoutInSecs         = 20;
   public    JanusGraph            graph;
@@ -157,35 +161,43 @@ public class PontusTinkerPopClient extends AbstractProcessor
   //            .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
   //            .build();
 
+
+  protected ExpressionLanguageScope getQueryStrExpressionLanguageScope()
+  {
+    return ExpressionLanguageScope.NONE;
+  }
+
   final PropertyDescriptor TINKERPOP_QUERY_STR = new PropertyDescriptor
       .Builder()
       .name("Tinkerpop Query")
-      .description(          "A Tinkerpop 3.3.0 query.  ")
+      .description("A Tinkerpop 3.3.0 query.  ")
       .required(true)
-      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-      .defaultValue( "v1 = g.addV(\"person\").property(id, userID1).property(\"name\", userName1).property(\"age\", userAge1).next()\n"
+      // LPPM - do not enable expression language here, as it can clash with groovy.
+      .expressionLanguageSupported(getQueryStrExpressionLanguageScope())
+      .defaultValue(
+          "v1 = g.addV(\"person\").property(id, userID1).property(\"name\", userName1).property(\"age\", userAge1).next()\n"
               + "v2 = g.addV(\"software\").property(id, userID2).property(\"name\", userName2).property(\"lang\", userLang2).next()\n"
               + "g.addE(\"created\").from(v1).to(v2).property(id, relId1).property(\"weight\", relWeight1)\n")
-      .addValidator( (subject, input, context) -> {
-            boolean isAscii = CharMatcher.ASCII
-                .matchesAllOf(input);
-            ValidationResult.Builder builder = new ValidationResult.Builder();
+      .addValidator((subject, input, context) -> {
+        boolean isAscii = CharMatcher.ASCII
+            .matchesAllOf(input);
+        ValidationResult.Builder builder = new ValidationResult.Builder();
 
-            builder.valid(isAscii);
-            builder.input(input);
-            builder.subject(subject);
+        builder.valid(isAscii);
+        builder.input(input);
+        builder.subject(subject);
 
-            if (!isAscii)
-            {
-              builder.explanation(
-                  "Found non-ascii characters in the string; perhaps you copied and pasted from a word doc or web site?");
-            }
+        if (!isAscii)
+        {
+          builder.explanation(
+              "Found non-ascii characters in the string; perhaps you copied and pasted from a word doc or web site?");
+        }
 
-            ValidationResult res = builder
-                .build();
+        ValidationResult res = builder
+            .build();
 
-            return res;
-          }).build();
+        return res;
+      }).build();
 
   final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
                                                              .description(
@@ -461,15 +473,15 @@ public class PontusTinkerPopClient extends AbstractProcessor
     catch (Throwable t)
     {
       log.warn("Failed to open " + confFileURI
-          + "; attempting default /opt/pontus/pontus-graph/current/conf/gremlin-server.yml; error: " + t.getMessage());
+          + "; attempting default /opt/nifi/nifi-current/conf/gremlin-server.yml; error: " + t.getMessage());
 
       settings = Settings
-          .read(new URI("file:///opt/pontus/pontus-graph/current/conf/gremlin-server.yml").toURL().openStream());
+          .read(new URI("file:///opt/nifi/nifi-current/conf/gremlin-server.yml").toURL().openStream());
     }
     serializersSettings = settings.serializers;
 
     String gconfFileStr = (String) settings.graphs
-        .getOrDefault("graph", "/opt/pontus/pontus-graph/current/conf/janusgraph-hbase-es.properties");
+        .getOrDefault("graph", "/opt/opt/nifi/nifi-current/conf/janusgraph-hbase-es.properties");
 
     File gconfFile = new File(gconfFileStr);
     //    CommonsConfiguration conf      = getLocalConfiguration(gconfFile, null, null);
@@ -747,7 +759,11 @@ public class PontusTinkerPopClient extends AbstractProcessor
     return bindings;
   }
 
-  public String getQueryStr(ProcessContext ctx, Map<String,String> attribs){
+  public String getQueryStr(ProcessContext ctx, Map<String, String> attribs)
+  {
+    if (getQueryStrExpressionLanguageScope() == ExpressionLanguageScope.NONE){
+      return queryStr;
+    }
     return ctx.getProperty(TINKERPOP_QUERY_STR).evaluateAttributeExpressions(attribs).getValue();
   }
 
@@ -893,7 +909,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
       Map<String, String> allAttribs = flowfile.getAttributes();
       session.remove(flowfile);
 
-      String queryString = getQueryStr(context,allAttribs);
+      String queryString = getQueryStr(session);
 
       localFlowFile = session.create();
       localFlowFile = session.putAllAttributes(localFlowFile, allAttribs);
