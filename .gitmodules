@@ -1,6 +1,0 @@
-[submodule "pontus-gdpr-graph"]
-	path = pontus-gdpr-graph
-	url = git@github.com:pontusvision/pontus-gdpr-graph.git
-[submodule "ldap-test-utils"]
-	path = ldap-test-utils
-	url = git@github.com:pontusvision/ldap-test-utils.git
