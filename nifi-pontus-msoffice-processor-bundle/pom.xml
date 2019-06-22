@@ -19,7 +19,7 @@
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-pontus-msoffice-processor-bundle</artifactId>
-    <version>1.2</version>
+    <version>1.9.2</version>
     <packaging>pom</packaging>
 
     <parent>

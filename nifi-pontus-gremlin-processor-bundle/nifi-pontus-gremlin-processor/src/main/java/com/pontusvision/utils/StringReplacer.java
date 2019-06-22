@@ -1,7 +1,7 @@
 package com.pontusvision.utils;
 /*
 Copyright Leo Martins -
-Pontus Vision - 2010-2017
+Pontus Vision - 2010-2019
 */
 
 import com.jayway.jsonpath.DocumentContext;
