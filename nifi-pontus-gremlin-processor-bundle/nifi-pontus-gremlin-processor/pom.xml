@@ -36,6 +36,12 @@
             <version>${unboundid-ldapsdk.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
+            <version>${nifi.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <!--<dependency>-->
         <!--<groupId>com.github.trevershick</groupId>-->

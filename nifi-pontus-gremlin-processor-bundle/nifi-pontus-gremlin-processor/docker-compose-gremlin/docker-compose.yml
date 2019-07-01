@@ -1,0 +1,91 @@
+version: '3.7'
+services:
+
+
+  elasticsearch:
+    image: "elasticsearch:6.7.2"
+    domainname: pontus-demo.com
+    restart: on-failure
+    privileged: false
+    hostname: elasticsearch
+#    container_name: elasticsearch.pontus-demo.com
+    environment:
+      - node.name=elasticsearch
+      - discovery.type=single-node
+      - cluster.name=docker-cluster
+      - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m"
+    networks:
+      - pontusvision-unit-test
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+
+  graphdb-nifi:
+    image: "pontusvisiongdpr/pontus-track-graphdb-nifi"
+    domainname: pontus-demo.com
+    restart: on-failure
+    privileged: false
+    hostname: graphdb-nifi
+    ports:
+      - "9999:9999"
+      - "9998:9998"
+#    container_name: graphdb-nifi.pontus-demo.com
+    depends_on:
+      - elasticsearch
+    networks:
+      - pontusvision-unit-test
+    command: >
+      /bin/bash -c "
+        echo Waiting for elasticsearch service start...;
+        while ! nc -z elasticsearch 9200;
+        do
+          sleep 1;
+        done;
+        echo Connected!;
+        LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/tmp /opt/pontus-graphdb/graphdb-current/bin/pv-gdpr-graphdb.sh /opt/pontus-graphdb/graphdb-current/conf/gremlin-server-nifi.yml
+      "
+
+
+
+  nifi-gremlin:
+    image: "maven:3.6-jdk-8-alpine"
+    domainname: pontusvision.com
+    depends_on:
+      - graphdb-nifi
+    networks:
+      - pontusvision-unit-test
+
+    volumes:
+      - ../..:/sut
+      - ~/.m2:/root/.m2
+      - pki_vol:/etc/pki
+
+    ports:
+      - "5010:5010"
+
+    working_dir: /sut/nifi-pontus-gremlin-processor
+
+    command: >
+      /bin/bash -c "
+        echo Waiting for graphdb-nifi service start...;
+        while [[ `/usr/bin/curl -s  -H 'Content-Type: application/json' -X POST -d '' http://graphdb-nifi:3001/home/vertex_labels` != *Object.Data_Source* ]] ; do
+          sleep 5;
+          echo waiting for graph to be ready ... got $$(/usr/bin/curl -s  -H 'Content-Type: application/json' -X POST -d '' http://graphdb-nifi:3001/home/vertex_labels);
+        done;
+        export RES=$$(/usr/bin/curl -s  -H 'Content-Type: application/json' -X POST -d '' http://graphdb-nifi:3001/home/vertex_labels);
+        echo Waiting for vertex_labels... got this: $$RES;
+        echo Connected!;
+        mvn -Dtest=TestIngestionProcessorBulkRequests,TestIngestionProcessorSimple,TestIngestionProcessorSimpleSubsequence -Dmaven.surefire.debug='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5010 -Xnoagent -Djava.compiler=NONE' -DforkCount=0 test
+      "
+volumes:
+  pki_vol:
+
+
+
+networks:
+  pontusvision-unit-test:
+
+
+

@@ -14,6 +14,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import pl.allegro.tech.embeddedelasticsearch.EmbeddedElastic;
 import pl.allegro.tech.embeddedelasticsearch.PopularProperties;
@@ -33,10 +34,11 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class TestIngestionProcessor
+@Ignore("Disabled in favour of remote client; needs the Jpostal data dir to work, which is no longer in git in tar.gz files")
+public class TestIngestionProcessorEmbedded
 {
 
-  private static final String TEST_DATA_RESOURCE_DIR = "csv-data/";
+  protected static final String TEST_DATA_RESOURCE_DIR = "csv-data/";
 
   protected static File       DEFAULT_INSTALL_DIR = new File(System.getProperty("java.io.tmpdir"), "data-dir");
   protected        TestRunner runner;
@@ -49,20 +51,6 @@ public class TestIngestionProcessor
   PropertyDescriptor              query;
 
 
-  protected String loadSchemaQueryStr = "//action\n"
-      + "\n"
-      + "try {\n"
-      + "    com.pontusvision.gdpr.App.graph = graph;\n"
-      + "    com.pontusvision.gdpr.App.g = g;\n"
-      + "    System.out.println('\\n\\n\\n\\nABOUT TO LOAD target/test-classes/graphdb-conf/conf2/gdpr-schema.json\\n\\n\\n\\n\\n')\n"
-      + "    String retVal = loadSchema(graph,'target/test-classes/graphdb-conf/conf2/gdpr-schema.json')\n"
-      + "    \n"
-      + "    System.out.println(\"results after loading target/test-classes/graphdb-conf/conf2/gdpr-schema.json: ${retVal}\\n\\n\\n\\n\\n\")\n"
-      + "\n"
-      + "} catch (e) {\n"
-      + "    e.printStackTrace()\n"
-      + "}\n"
-      + "\n";
   protected String queryStr =
       "\n" + "\n"
           + "def rulesStr = '''\n"
@@ -200,30 +188,30 @@ public class TestIngestionProcessor
           + "\n"
           + "\t  }\n"
           + "\t ,{\n"
-          + "\t\t\"label\": \"Event.Ingestion.Group\"\n"
+          + "\t\t\"label\": \"Event.Group_Ingestion\"\n"
           + "\t   ,\"props\":\n"
           + "\t\t[\n"
           + "\t\t  {\n"
-          + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_Start_Date\"\n"
+          + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_Start_Date\"\n"
           + "\t\t   ,\"val\": \"${pg_currDate}\"\n"
           + "\t\t   ,\"mandatoryInSearch\": true\n"
           + "\t\t   ,\"excludeFromSearch\": false\n"
           + "\t\t   ,\"type\": \"java.util.Date\"\n"
           + "\t\t  }\n"
           + "\t\t ,{\n"
-          + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_End_Date\"\n"
+          + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_End_Date\"\n"
           + "\t\t   ,\"val\": \"${new Date()}\"\n"
           + "\t\t   ,\"excludeFromSearch\": true\n"
           + "\t\t   ,\"type\": \"java.util.Date\"\n"
           + "\t\t  }\n"
           + "\n"
           + "\t\t ,{\n"
-          + "\t\t\t\"name\": \"Event.Ingestion.Group.Type\"\n"
+          + "\t\t\t\"name\": \"Event.Group_Ingestion.Type\"\n"
           + "\t\t   ,\"val\": \"CRM System CSV File\"\n"
           + "\t\t   ,\"excludeFromSearch\": true\n"
           + "\t\t  }\n"
           + "\t\t ,{\n"
-          + "\t\t\t\"name\": \"Event.Ingestion.Group.Operation\"\n"
+          + "\t\t\t\"name\": \"Event.Group_Ingestion.Operation\"\n"
           + "\t\t   ,\"val\": \"Structured Data Insertion\"\n"
           + "\t\t   ,\"excludeFromSearch\": true\n"
           + "\t\t  }\n"
@@ -302,7 +290,7 @@ public class TestIngestionProcessor
 
           + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Person\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
 
-          + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Ingestion.Group\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
+          + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Group_Ingestion\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
 
           + "     ,{ \"label\": \"Consent\", \"fromVertexLabel\": \"Person\", \"toVertexLabel\": \"Event.Consent\"  }\n"
 
@@ -445,17 +433,17 @@ public class TestIngestionProcessor
       + "\t\t]\n"
       + "\t  }\n"
       + "     ,{\n"
-      + "\t\t\"label\": \"Event.Ingestion.Group\"\n"
+      + "\t\t\"label\": \"Event.Group_Ingestion\"\n"
       + "\t   ,\"props\":\n"
       + "\t\t[\n"
       + "\t\t  {\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_Start_Date\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_Start_Date\"\n"
       + "\t\t   ,\"val\": \"${pg_currDate}\"\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
       + "\t\t   ,\"type\": \"java.util.Date\"\n"
       + "\t\t  }\n"
       + "\t\t ,{\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_End_Date\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_End_Date\"\n"
       + "\t\t   ,\"val\": \"${new Date()}\"\n"
       + "\t\t   ,\"excludeFromSearch\": true\n"
       + "\t\t   ,\"excludeFromSubsequenceSearch\": true\n"
@@ -463,12 +451,12 @@ public class TestIngestionProcessor
       + "\t\t  }\n"
       + "\n"
       + "\t\t ,{\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Type\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Type\"\n"
       + "\t\t   ,\"val\": \"Outlook PST Files\"\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
       + "\t\t  }\n"
       + "\t\t ,{\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Operation\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Operation\"\n"
       + "\t\t   ,\"val\": \"Unstructured Data Insertion\"\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
       + "\t\t  }\n"
@@ -480,7 +468,7 @@ public class TestIngestionProcessor
       + "   ,\"edges\":\n"
       + "    [\n"
       + "      { \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Person\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
-      + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Ingestion.Group\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
+      + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Group_Ingestion\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
       + "    ]\n"
       + "  }\n"
       + "}\n"
@@ -573,7 +561,7 @@ public class TestIngestionProcessor
       + "\t\t  {\n"
       + "\t\t\t\"name\": \"Person.Full_Name_fuzzy\"\n"
       + "\t\t   ,\"val\": \"${person}\"\n"
-      + "\t\t   ,\"predicate\": \"idxRaw:personDataMixedIdx\"\n"
+      + "\t\t   ,\"predicate\": \"idxRaw:Person.Natural.MixedIdx\"\n"
       + "\t\t   ,\"type\":\"[Ljava.lang.String;\"\n"
       + "\t\t   ,\"excludeFromUpdate\": true\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
@@ -661,17 +649,17 @@ public class TestIngestionProcessor
       + "\t\t]\n"
       + "\t  }\n"
       + "     ,{\n"
-      + "\t\t\"label\": \"Event.Ingestion.Group\"\n"
+      + "\t\t\"label\": \"Event.Group_Ingestion\"\n"
       + "\t   ,\"props\":\n"
       + "\t\t[\n"
       + "\t\t  {\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_Start_Date\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_Start_Date\"\n"
       + "\t\t   ,\"val\": \"${pg_currDate}\"\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
       + "\t\t   ,\"type\": \"java.util.Date\"\n"
       + "\t\t  }\n"
       + "\t\t ,{\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_End_Date\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_End_Date\"\n"
       + "\t\t   ,\"val\": \"${new Date()}\"\n"
       + "\t\t   ,\"excludeFromSearch\": true\n"
       + "\t\t   ,\"excludeFromSubsequenceSearch\": true\n"
@@ -679,12 +667,12 @@ public class TestIngestionProcessor
       + "\t\t  }\n"
       + "\n"
       + "\t\t ,{\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Type\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Type\"\n"
       + "\t\t   ,\"val\": \"Outlook PST Files\"\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
       + "\t\t  }\n"
       + "\t\t ,{\n"
-      + "\t\t\t\"name\": \"Event.Ingestion.Group.Operation\"\n"
+      + "\t\t\t\"name\": \"Event.Group_Ingestion.Operation\"\n"
       + "\t\t   ,\"val\": \"Unstructured Data Insertion\"\n"
       + "\t\t   ,\"mandatoryInSearch\": true\n"
       + "\t\t  }\n"
@@ -696,7 +684,7 @@ public class TestIngestionProcessor
       + "   ,\"edges\":\n"
       + "    [\n"
       + "      { \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Person\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
-      + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Ingestion.Group\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
+      + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Group_Ingestion\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
       + "    ]\n"
       + "  }\n"
       + "}\n"
@@ -867,7 +855,7 @@ public class TestIngestionProcessor
 
     }
 
-    com.pontusvision.utils.LocationAddress.parser.getInstance().parseAddress("Rua 25 Andre Tesch");
+    LocationAddress.parser.getInstance().parseAddress("Rua  Andre Tesch, 25");
 
   }
 
@@ -905,16 +893,16 @@ public class TestIngestionProcessor
 
   /*
    * Create a Tinkerpop Nifi Processor that has an embedded in-memory graph,
-   * and a query that invokes the ingestPole() function that dedups any entries
+   * and a PROP_QUERY that invokes the ingestPole() function that dedups any entries
    * within the batch.
    */
 
   @Before public void setup() throws Exception
   {
 
-    prepareAddressParserDir();
-
-    es = runES();
+//    prepareAddressParserDir();
+//
+//    es = runES();
 
     ptpc = new PontusTinkerPopClient();
 
@@ -932,7 +920,7 @@ public class TestIngestionProcessor
 
     System.out.println (String.format(queryStr2,"45.0"));
 
-    CSVReader service = new org.apache.nifi.csv.CSVReader();
+    CSVReader service = new CSVReader();
 
     Map<String, String> controllerSvcProps = new HashMap<>();
     controllerSvcProps.put("schema-access-strategy", "csv-header-derived");
@@ -941,12 +929,12 @@ public class TestIngestionProcessor
     controllerSvcProps.put("CSV Format", "rfc-4180");
     controllerSvcProps.put("Skip Header Line", "true");
 
-    ClassLoader testClassLoader = TestIngestionProcessor.class.getClassLoader();
+    ClassLoader testClassLoader = TestIngestionProcessorEmbedded.class.getClassLoader();
     URL         url             = testClassLoader.getResource("graphdb-conf/gremlin-mem.yml");
 
     runnerBr = TestRunners.newTestRunner(ptpcBr);
     runnerBr.setValidateExpressionUsage(true);
-    runnerBr.setProperty(embeddedServer, "true");
+    runnerBr.setProperty(embeddedServer, "false");
     runnerBr.setProperty(confURI, url.toURI().toString());
     runnerBr.setProperty(query, queryStr);
     runnerBr.addControllerService("Demo_CRM_CSVReader", service, controllerSvcProps);
@@ -954,25 +942,25 @@ public class TestIngestionProcessor
     runnerBr.enableControllerService(service);
     runnerBr.setProperty(RECORD_READER, "Demo_CRM_CSVReader");
 
-    //    ptpcBr.onPropertyModified(embeddedServer, "true", "true");
-    //    ptpcBr.onPropertyModified(confURI, "", url.toURI().toString());
-    //    ptpcBr.onPropertyModified(query, "true", queryStr);
-    //    ptpcBr.onPropertyModified(RECORD_READER, "", "Demo_CRM_CSVReader");
+    //    ptpcBr.onPropertyModified(PROP_IS_EMBEDDED_SERVER, "true", "true");
+    //    ptpcBr.onPropertyModified(PROP_CONF_URI, "", url.toURI().toString());
+    //    ptpcBr.onPropertyModified(PROP_QUERY, "true", queryStr);
+    //    ptpcBr.onPropertyModified(PROP_RECORD_READER, "", "Demo_CRM_CSVReader");
 
 //    runner = TestRunners.newTestRunner(ptpc);
 //    runner.setValidateExpressionUsage(true);
-//    runner.setProperty(embeddedServer, "true");
-//    runner.setProperty(confURI, url.toURI().toString());
-//    runner.setProperty(query, queryStr);
+//    runner.setProperty(PROP_IS_EMBEDDED_SERVER, "true");
+//    runner.setProperty(PROP_CONF_URI, url.toURI().toString());
+//    runner.setProperty(PROP_QUERY, queryStr);
 //
-//    //    ptpc.onPropertyModified(embeddedServer, "true", "true");
-//    //    ptpc.onPropertyModified(confURI, "", url.toURI().toString());
-//    //    ptpc.onPropertyModified(query, "true", queryStr);
+//    //    ptpc.onPropertyModified(PROP_IS_EMBEDDED_SERVER, "true", "true");
+//    //    ptpc.onPropertyModified(PROP_CONF_URI, "", url.toURI().toString());
+//    //    ptpc.onPropertyModified(PROP_QUERY, "true", queryStr);
 //
 //    runner.assertValid();
 //    App.settings = Settings.read("target/test-classes/graphdb-conf/gremlin-mem.yml");
 //
-//    App.graph = (JanusGraph) ptpcBr.embeddedServer.getGraphManager().getGraph("graph");
+//    App.graph = (JanusGraph) ptpcBr.PROP_IS_EMBEDDED_SERVER.getGraphManager().getGraph("graph");
 //
 //    Bindings bindings = new ConcurrentBindings();
 //    bindings.put("graph", App.graph);
@@ -987,21 +975,21 @@ public class TestIngestionProcessor
   //  {
   //    ptpc = new PontusTinkerPopClient();
   //
-  //    embeddedServer = ptpc.getPropertyDescriptor("Tinkerpop Embedded Server");
-  //    confURI = ptpc.getPropertyDescriptor("Tinkerpop Client configuration URI");
-  //    query = ptpc.getPropertyDescriptor("Tinkerpop Query");
-  //    ClassLoader testClassLoader = TestIngestionProcessor.class.getClassLoader();
+  //    PROP_IS_EMBEDDED_SERVER = ptpc.getPropertyDescriptor("Tinkerpop Embedded Server");
+  //    PROP_CONF_URI = ptpc.getPropertyDescriptor("Tinkerpop Client configuration URI");
+  //    PROP_QUERY = ptpc.getPropertyDescriptor("Tinkerpop Query");
+  //    ClassLoader testClassLoader = TestIngestionProcessorSimple.class.getClassLoader();
   //    URL url = testClassLoader.getResource("graphdb-conf/gremlin-mem.yml");
   //
   //    runner = TestRunners.newTestRunner(ptpc);
   //    runner.setValidateExpressionUsage(true);
-  //    runner.setProperty(embeddedServer, "true");
-  //    runner.setProperty(confURI, url.toURI().toString());
-  //    runner.setProperty(query, "ingestPoleCreate(pg_poleJsonStr,graph,g)");
+  //    runner.setProperty(PROP_IS_EMBEDDED_SERVER, "true");
+  //    runner.setProperty(PROP_CONF_URI, url.toURI().toString());
+  //    runner.setProperty(PROP_QUERY, "ingestPoleCreate(pg_poleJsonStr,graph,g)");
   //
-  //    ptpc.onPropertyModified(embeddedServer, "true", "true");
-  //    ptpc.onPropertyModified(confURI, "", url.toURI().toString());
-  //    ptpc.onPropertyModified(query, "true", "ingestPoleCreate(pg_poleJsonStr,graph,g)");
+  //    ptpc.onPropertyModified(PROP_IS_EMBEDDED_SERVER, "true", "true");
+  //    ptpc.onPropertyModified(PROP_CONF_URI, "", url.toURI().toString());
+  //    ptpc.onPropertyModified(PROP_QUERY, "true", "ingestPoleCreate(pg_poleJsonStr,graph,g)");
   //
   //    runner.assertValid();
   //  }
@@ -1015,7 +1003,7 @@ public class TestIngestionProcessor
     byte[] res = ptpcBr.runQuery(bindings,
         "g.V().has('Object.Insurance_Policy.Number', eq('10333275')).count()");
     String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numItemsWithGUID = Integer.parseInt(JsonPath.read(data2, "$.result.data['@value'][0]"));
     assertEquals("Only one item with Policy Number", 1, (int) numItemsWithGUID);
 
   }
@@ -1106,7 +1094,7 @@ public class TestIngestionProcessor
             + "int maxHitsPerType = 1000;\n"
             + "  Map<Long, Double> idxQueryRes = new HashMap<>();\n"
             + "\n"
-            + "  graph.indexQuery(\"personDataMixedIdx\", 'v.\"Person.Full_Name_fuzzy\":john~')?.limit(maxHitsPerType)?.vertexStream()?.forEach { org.janusgraph.core.JanusGraphIndexQuery.Result<org.janusgraph.core.JanusGraphVertex> result ->\n"
+            + "  graph.indexQuery(\"Person.Natural.MixedIdx\", 'v.\"Person.Full_Name_fuzzy\":john~')?.limit(maxHitsPerType)?.vertexStream()?.forEach { org.janusgraph.core.JanusGraphIndexQuery.Result<org.janusgraph.core.JanusGraphVertex> result ->\n"
             + "    double score = result.score\n"
             + "    idxQueryRes.put((Long)result.element.id(), score);\n"
             + "    maxScoreForRawIdx = Math.max(maxScoreForRawIdx, score);\n"
@@ -1121,13 +1109,13 @@ public class TestIngestionProcessor
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Metadata.Type.Person',eq('Person')).count()");
     data            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]");
     assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
 
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
     data            = new String(res);
-    //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull("Data not NULL expected", data);
 
 
@@ -1135,14 +1123,14 @@ public class TestIngestionProcessor
     byte[] res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
     String data2     = new String(res2);
-    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
 
     res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
     data2     = new String(res2);
-    numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numEdges = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
 
@@ -1165,13 +1153,13 @@ public class TestIngestionProcessor
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Metadata.Type.Person',eq('Person')).count()");
     data            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]");
     assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
 
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
     data            = new String(res);
-    //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+    //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull("Data not NULL expected", data);
 
 
@@ -1179,14 +1167,14 @@ public class TestIngestionProcessor
     byte[] res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
     String data2     = new String(res2);
-    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
 
     res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
     data2     = new String(res2);
-    numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numEdges = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("5 people edges expected, as the threshold is 90%", 5, (int) numEdges);
 
 
@@ -1209,13 +1197,13 @@ public class TestIngestionProcessor
   res = ptpcBr.runQuery(attribs,
       "g.V().has('Metadata.Type.Person',eq('Person')).count()");
   data            = new String(res);
-  Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+  Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]");
   assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
 
   res = ptpcBr.runQuery(attribs,
       "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
   data            = new String(res);
-  //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+  //    actualRes = JsonPath.read(data, "$.result.data['@value'][0]");
   assertNotNull("Data not NULL expected", data);
 
 
@@ -1223,13 +1211,13 @@ public class TestIngestionProcessor
   byte[] res2 = ptpcBr.runQuery(attribs,
       "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().count()");
   String data2     = new String(res2);
-  Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]");
   assertEquals("6 people edges expected, as the threshold is 45%", 6, (int) numEdges);
 
     byte[] res3 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN DAILEY')).bothE().count()");
     String data3     = new String(res3);
-    numEdges = JsonPath.read(data3, "$.result.data['@value'][0]['@value']");
+    numEdges = JsonPath.read(data3, "$.result.data['@value'][0]");
     assertEquals("6 people edges expected, as the threshold is 45%, and JOHN DAILEY is also a  match", 6, (int) numEdges);
 
 }
@@ -1252,7 +1240,7 @@ public class TestIngestionProcessor
     res = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE()");
     data            = new String(res);
-//    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]['@value']");
+//    Integer numItemsWithGUID = JsonPath.read(data, "$.result.data['@value'][0]");
 //    assertEquals("11 people records expected", 11, (int) numItemsWithGUID);
     assertNotNull(data);
 
@@ -1260,7 +1248,7 @@ public class TestIngestionProcessor
     byte[] res2 = ptpcBr.runQuery(attribs,
         "g.V().has('Person.Full_Name',eq('JOHN SMITH')).bothE().has('fromScorePercent',gt((double)90.0)).count()");
     String data2     = new String(res2);
-    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numEdges = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("6 people edges expected, as the threshold is 45%", 6, (int) numEdges);
 
 
@@ -1276,7 +1264,7 @@ public class TestIngestionProcessor
     byte[] res = ptpcBr.runQuery(attribs,
         String.format(queryStr2, "45.0"));
     String data2     = new String(res);
-    String actualRes = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    String actualRes = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertNotNull(actualRes);
 
   }
@@ -1362,7 +1350,7 @@ public class TestIngestionProcessor
     String data = new String(result.get(0).toByteArray());
     assertNotNull(data);
 
-    /* extract the query results */
+    /* extract the PROP_QUERY results */
     String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(poleRes);
 
@@ -1371,7 +1359,7 @@ public class TestIngestionProcessor
     byte[] res = ptpc.runQuery(bindings,
         "g.V().has('Metadata.Type.Person',eq('Person')).count()");
     String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("No people records expected", 0, (int) numItemsWithGUID);
 
     //    assertEquals(poleRes.split("SANDEEP").length, 169);
@@ -1463,7 +1451,7 @@ public class TestIngestionProcessor
     String data = new String(result.get(0).toByteArray());
     assertNotNull(data);
 
-    /* extract the query results */
+    /* extract the PROP_QUERY results */
     String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(poleRes);
 
@@ -1508,7 +1496,7 @@ public class TestIngestionProcessor
     String data = new String(result.get(0).toByteArray());
     assertNotNull(data);
 
-    /* extract the query results */
+    /* extract the PROP_QUERY results */
     //    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
 
     /* Now, verify that the graph itself has the correct data by making a few queries directly to it */
@@ -1518,31 +1506,31 @@ public class TestIngestionProcessor
     byte[] res = ptpc.runQuery(bindings,
         "g.V().has('P.identity.id',eq('ccac8d5ff3288132af67e98ef771c722cf85e9c44b93eebb1e906646e0054725')).count()");
     String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Only one item with GUID that had matched == false", 1, (int) numItemsWithGUID);
 
     res = ptpc.runQuery(bindings,
         "g.V().has('E.journey.id',eq('bf08c81b6becff33a2478f4d8aff7700a081ec737adc683a9c5078dae2df3d11')).count()");
     data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Only one item with GUID that had matched == false", 1, (int) numItemsWithGUID);
 
     res = ptpc.runQuery(bindings,
         "g.V().has('O.document.id',eq('2ce842fba7ed428c331e6c156f893aaeaf216b661e03782bc884da36861f981e')).count()");
     data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Only one item with GUID that had matched == false", 1, (int) numItemsWithGUID);
 
     res = ptpc.runQuery(bindings,
         "g.V().has('L.place.id',eq('39a45fe15843d19277e6e32927cf57ef85b6d4937dd62a6680c099eb03432bf2')).count()");
     data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Only one item with GUID that had matched == true and false", 1, (int) numItemsWithGUID);
 
     res = ptpc.runQuery(bindings,
         "g.V().has('L.place.id',eq('a1ab8e18efb54371d789de921375354aee750cf6fc97e0af00d30f8b01921dac')).count()");
     data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("No matches for item with GUID that had matched == true only", 0, (int) numItemsWithGUID);
 
   }
@@ -1568,7 +1556,7 @@ public class TestIngestionProcessor
     String data = new String(result.get(0).toByteArray());
     assertNotNull(data);
 
-    /* extract the query results */
+    /* extract the PROP_QUERY results */
     String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(poleRes);
 
@@ -1615,7 +1603,7 @@ public class TestIngestionProcessor
     String data = new String(result.get(0).toByteArray());
     assertNotNull(data);
 
-    /* extract the query results */
+    /* extract the PROP_QUERY results */
     String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
 
     Integer numEntries = JsonPath.read(poleRes, "$.length()");
@@ -1641,31 +1629,31 @@ public class TestIngestionProcessor
     byte[] res = ptpcBr.runQuery(bindings,
         "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).count()");
     String  data2            = new String(res);
-    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
 
     res = ptpcBr.runQuery(bindings,
         "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).both().dedup().count()");
     data2 = new String(res);
-    Integer numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    Integer numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Num Neighbours", 1, (int) numNeighbours);
 
     res = ptpcBr.runQuery(bindings,
         "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).count()");
     data2 = new String(res);
-    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
 
     res = ptpcBr.runQuery(bindings,
         "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).both().dedup().count()");
     data2 = new String(res);
-    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Num Neighbours ", 1, (int) numNeighbours);
 
     res = ptpcBr.runQuery(bindings,
         "g.V().has('E.journey.id',eq('262c57d3f042f5b27ed64533796cf7c218887c484b6a98cac09c64267b25b994')).both().dedup().count()");
     data2 = new String(res);
-    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
     assertEquals("Num Neighbours ", 6, (int) numNeighbours);
 
     runner.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + "pole-batch.json"), attribs);
@@ -1717,8 +1705,8 @@ public class TestIngestionProcessor
   //
   //    String createQuery = "ingestPoleCreate(pg_poleJsonStr, graph, g)";
   //
-  //    runner.setProperty(query, createQuery);
-  //    ptpc.onPropertyModified(query, "", createQuery);
+  //    runner.setProperty(PROP_QUERY, createQuery);
+  //    ptpc.onPropertyModified(PROP_QUERY, "", createQuery);
   //
   //    runner.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
   //    runner.run();
@@ -1731,7 +1719,7 @@ public class TestIngestionProcessor
   //    String data = new String(result.get(0).toByteArray());
   //    assertNotNull(data);
   //
-  //    /* extract the query results */
+  //    /* extract the PROP_QUERY results */
   //    String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
   //
   //    assertEquals("get a OK message", "OK", poleRes);
@@ -1742,14 +1730,14 @@ public class TestIngestionProcessor
   //    byte[] res = ptpc.runQuery(bindings,
   //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).count()");
   //    String data2 = new String(res);
-  //    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    Integer numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('2554cc00d58dda38b0f50b86610f45a9fb592415b3ac8a6bbdb80c43b6c89e95')).count()");
   //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //
@@ -1757,25 +1745,25 @@ public class TestIngestionProcessor
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).both().dedup().count()");
   //    data2 = new String(res);
-  //    Integer numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    Integer numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("No edges after the create step", 0, (int) numNeighbours);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).count()");
   //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).both().dedup().count()");
   //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("No edges after the create step ", 0, (int) numNeighbours);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('E.journey.id',eq('262c57d3f042f5b27ed64533796cf7c218887c484b6a98cac09c64267b25b994')).both().dedup().count()");
   //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("No edges after the create step ", 0, (int) numNeighbours);
   //
   //    //    String updateQuery = "StringBuilder sb = new StringBuilder(); \n"
@@ -1791,8 +1779,8 @@ public class TestIngestionProcessor
   //
   //
   //    //
-  //    //    runner.setProperty(query, updateQuery);
-  //    //    ptpc.onPropertyModified(query, "", updateQuery);
+  //    //    runner.setProperty(PROP_QUERY, updateQuery);
+  //    //    ptpc.onPropertyModified(PROP_QUERY, "", updateQuery);
   //    //
   //    //
   //    // check that the value is still in the graph after resetting the updateQuery.
@@ -1800,7 +1788,7 @@ public class TestIngestionProcessor
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('2554cc00d58dda38b0f50b86610f45a9fb592415b3ac8a6bbdb80c43b6c89e95')).count()");
   //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //
@@ -1819,7 +1807,7 @@ public class TestIngestionProcessor
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('2554cc00d58dda38b0f50b86610f45a9fb592415b3ac8a6bbdb80c43b6c89e95')).count()");
   //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //
@@ -1846,31 +1834,31 @@ public class TestIngestionProcessor
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).count()");
   //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('O.document.id',eq('b136564aeb57278596ce59ba86056e71768790612c05931f863beffd96999cd3')).both().dedup().count()");
   //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Num Neighbours", 1, (int) numNeighbours);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).count()");
   //    data2 = new String(res);
-  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numItemsWithGUID = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Only one item with GUID", 1, (int) numItemsWithGUID);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('L.place.id',eq('6130beff7352acd496ecd3fd97ff404d775b0b64fa9785d9649979290ed67e15')).both().dedup().count()");
   //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Num Neighbours ", 1, (int) numNeighbours);
   //
   //    res = ptpc.runQuery(bindings,
   //        "g.V().has('E.journey.id',eq('262c57d3f042f5b27ed64533796cf7c218887c484b6a98cac09c64267b25b994')).both().dedup().count()");
   //    data2 = new String(res);
-  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]['@value']");
+  //    numNeighbours = JsonPath.read(data2, "$.result.data['@value'][0]");
   //    assertEquals("Num Neighbours ", 6, (int) numNeighbours);
   //
   //    //

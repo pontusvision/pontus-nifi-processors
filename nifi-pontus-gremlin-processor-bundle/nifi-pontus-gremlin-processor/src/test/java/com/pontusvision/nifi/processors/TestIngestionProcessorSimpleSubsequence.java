@@ -2,56 +2,23 @@ package com.pontusvision.nifi.processors;
 
 import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
 
-public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
+public class TestIngestionProcessorSimpleSubsequence extends TestIngestionProcessorSimple
 {
 
 
   /*
    * Create a Tinkerpop Nifi Processor that has an embedded in-memory graph,
-   * and a query that invokes the ingestPole() function that dedups any entries
+   * and a PROP_QUERY that invokes the ingestPole() function that dedups any entries
    * within the batch.
    */
-
-  @Before public void setup() throws Exception
-  {
-
-    prepareAddressParserDir();
-
-    ptpc = new PontusTinkerPopClient();
-
-
-
-    embeddedServer = ptpc.getPropertyDescriptor("Tinkerpop Embedded Server");
-    confURI = ptpc.getPropertyDescriptor("Tinkerpop Client configuration URI");
-    query = ptpc.getPropertyDescriptor("Tinkerpop Query");
-
-
-
-    ClassLoader testClassLoader = TestIngestionProcessorSubsequence.class.getClassLoader();
-    URL         url             = testClassLoader.getResource("graphdb-conf/gremlin-mem-no-elastic.yml");
-
-
-    runner = TestRunners.newTestRunner(ptpc);
-    runner.setValidateExpressionUsage(true);
-    runner.setProperty(embeddedServer, "true");
-    runner.setProperty(confURI, url.toURI().toString());
-    runner.setProperty(query, queryStr);
-
-
-    runner.assertValid();
-  }
-
 
   @Test public void testIssueNLPQueryStuck() throws Exception
   {
@@ -64,11 +31,11 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         + "    \"vertices\":\n"
         + "\t[\n"
         + "\t  {\n"
-        + "\t\t\"label\": \"Person\"\n"
+        + "\t\t\"label\": \"Person.Natural\"\n"
         + "\t   ,\"props\":\n"
         + "\t\t[\n"
         + "\t\t  {\n"
-        + "\t\t\t\"name\": \"Person.Full_Name_fuzzy\"\n"
+        + "\t\t\t\"name\": \"Person.Natural.Full_Name_fuzzy\"\n"
         + "\t\t   ,\"val\": \"${person}\"\n"
         + "\t\t   ,\"predicate\": \"textContainsFuzzy\"\n"
         + "\t\t   ,\"type\":\"[Ljava.lang.String;\"\n"
@@ -78,7 +45,7 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         + "\t\t   \n"
         + "\t\t  }\n"
         + "\t\t ,{\n"
-        + "\t\t\t\"name\": \"Person.Last_Name\"\n"
+        + "\t\t\t\"name\": \"Person.Natural.Last_Name\"\n"
         + "\t\t   ,\"val\": \"${person}\"\n"
         + "\t\t   ,\"predicate\": \"textContainsFuzzy\"\n"
         + "\t\t   ,\"type\":\"[Ljava.lang.String;\"\n"
@@ -166,17 +133,17 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         + "\t\t]\n"
         + "\t  }\n"
         + "     ,{\n"
-        + "\t\t\"label\": \"Event.Ingestion.Group\"\n"
+        + "\t\t\"label\": \"Event.Group_Ingestion\"\n"
         + "\t   ,\"props\":\n"
         + "\t\t[\n"
         + "\t\t  {\n"
-        + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_Start_Date\"\n"
+        + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_Start_Date\"\n"
         + "\t\t   ,\"val\": \"${pg_currDate}\"\n"
         + "\t\t   ,\"mandatoryInSearch\": true\n"
         + "\t\t   ,\"type\": \"java.util.Date\"\n"
         + "\t\t  }\n"
         + "\t\t ,{\n"
-        + "\t\t\t\"name\": \"Event.Ingestion.Group.Metadata_End_Date\"\n"
+        + "\t\t\t\"name\": \"Event.Group_Ingestion.Metadata_End_Date\"\n"
         + "\t\t   ,\"val\": \"${new Date()}\"\n"
         + "\t\t   ,\"excludeFromSearch\": true\n"
         + "\t\t   ,\"excludeFromSubsequenceSearch\": true\n"
@@ -184,12 +151,12 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         + "\t\t  }\n"
         + "\n"
         + "\t\t ,{\n"
-        + "\t\t\t\"name\": \"Event.Ingestion.Group.Type\"\n"
+        + "\t\t\t\"name\": \"Event.Group_Ingestion.Type\"\n"
         + "\t\t   ,\"val\": \"Outlook PST Files\"\n"
         + "\t\t   ,\"mandatoryInSearch\": true\n"
         + "\t\t  }\n"
         + "\t\t ,{\n"
-        + "\t\t\t\"name\": \"Event.Ingestion.Group.Operation\"\n"
+        + "\t\t\t\"name\": \"Event.Group_Ingestion.Operation\"\n"
         + "\t\t   ,\"val\": \"Unstructured Data Insertion\"\n"
         + "\t\t   ,\"mandatoryInSearch\": true\n"
         + "\t\t  }\n"
@@ -200,8 +167,8 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         + "\t]\n"
         + "   ,\"edges\":\n"
         + "    [\n"
-        + "      { \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Person\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
-        + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Ingestion.Group\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
+        + "      { \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Person.Natural\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
+        + "     ,{ \"label\": \"Has_Ingestion_Event\", \"fromVertexLabel\": \"Event.Group_Ingestion\", \"toVertexLabel\": \"Event.Ingestion\"  }\n"
         + "    ]\n"
         + "  }\n"
         + "}\n"
@@ -278,12 +245,12 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         + "}\n"
         + "sb.toString()";
 
-    runner.setProperty(query, queryStr2);
+    setClientQuery(queryStr2);
 
     /* Load a batch of 2 requests separated by CDP_DELIMITER into the tinkerpop nifi processor*/
     Map<String, String> attribs = new HashMap<>();
-//    attribs.put("pg_poleJsonStr",
-//        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
+    //    attribs.put("pg_poleJsonStr",
+    //        IOUtils.toString(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), StandardCharsets.UTF_8));
     attribs.put("pg_lastErrorStr", "");
 
     attribs.put("pg_currDate"
@@ -345,10 +312,11 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
         , "[]");
     attribs.put("priority"
         , "0");
-    attribs.put ("pg_content", "{\"text\":\"Hi All \\u2013 Reminder for the session \\u201CDigital Customer Acquisition in Insurance\\u201D by Sandeep Manchanda and Chayan Dasgupta on 14th November.\\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nTo:  All Band D & above, and Band C in Insurance BU\\r\\n\\r\\n \\r\\n\\r\\n\\r\\n\\r\\n                                                                                                                            \\r\\n\\r\\nHi All,\\r\\n\\r\\n \\r\\n\\r\\nDigital transformation has put the spotlight on customer experience as a key business outcome. In the insurance industry, the entire customer journey is being reimagined. And customer acquisition has been at the forefront of this transformation. \\r\\n\\r\\n \\r\\n\\r\\nI am pleased to invite you to the IntelliTalk on Digital Customer Acquisition in Insurance by Sandeep Manchanda, VP, Global Head of Digital Customer Acquisition and Chayan Dasgupta, VP Technology\\/Product Development, on the 14th November at 9 am \\u201310 am Eastern.\\r\\n\\r\\n \\r\\n\\r\\nThis session will focus on:\\r\\n\\r\\n*         What are key drivers of digital customer acquisition in Insurance\\r\\n\\r\\n*         What new innovations by InsurTechs and incumbents have entered the market\\r\\n\\r\\n*         EXL\\u2019s digital customer acquisition strategy in Insurance\\r\\n\\r\\n*         Review EXL\\u2019s Digital Customer Acquisition (DCA) platform \\r\\n\\r\\n \\r\\n\\r\\nTo prepare for the future, carriers are augmenting their \\u201Cfeet-on-the-street\\u201D customer acquisition model with a more agile, digital strategy by deploying end-to-end digital platforms. Companies have the opportunity to achieve profitable distribution by acquiring and onboarding sustainable customers more quickly and at a lower cost than traditional methods.\\r\\n\\r\\n \\r\\n\\r\\nDATE: 14th November, 9.00 am\\u201310.00 am Eastern, 7:30 pm\\u20138.30 pm IST \\r\\n\\r\\n \\r\\n\\r\\nThank you to Sandeep Manchanda and Chayan Dasgupta for sharing their insights on how EXL is applying Digital Intelligence to redefine customer acquisition for our Insurance clients. \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\nJoin Skype Meeting <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H>       \\r\\n\\r\\nTrouble Joining? Try Skype Web App <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H?sl=1>  \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nJoin by Phone\\r\\n\\r\\nFind a local number <http:\\/\\/www.intercall.com\\/l\\/dial-in-number-lookup.php>  \\r\\n\\r\\n \\r\\n\\r\\nConference ID: 9549110989 \\r\\n\\r\\n \\r\\n\\r\\nHelp <http:\\/\\/go.microsoft.com\\/fwlink\\/?LinkId=389737>    \\r\\n\\r\\n \\r\\n\\r\\nUS 8773614628\\r\\n\\r\\nIndia 180030106096\\r\\n\\r\\nPhilippines 180011101824, 180087989954\\r\\n\\r\\nUK 08003761896\\r\\n\\r\\nCzech Republic 296180005\\r\\n\\r\\nRomania 0800895570\\r\\n\\r\\nSouth Africa 0800014682 \\r\\n\\r\\n[!\\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\n \\r\\n\\r\\n\\n\",\"features\":{\"entities\":{}}}");
+    attribs.put("pg_content",
+        "{\"text\":\"Hi All \\u2013 Reminder for the session \\u201CDigital Customer Acquisition in Insurance\\u201D by Sandeep Manchanda and Chayan Dasgupta on 14th November.\\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nTo:  All Band D & above, and Band C in Insurance BU\\r\\n\\r\\n \\r\\n\\r\\n\\r\\n\\r\\n                                                                                                                            \\r\\n\\r\\nHi All,\\r\\n\\r\\n \\r\\n\\r\\nDigital transformation has put the spotlight on customer experience as a key business outcome. In the insurance industry, the entire customer journey is being reimagined. And customer acquisition has been at the forefront of this transformation. \\r\\n\\r\\n \\r\\n\\r\\nI am pleased to invite you to the IntelliTalk on Digital Customer Acquisition in Insurance by Sandeep Manchanda, VP, Global Head of Digital Customer Acquisition and Chayan Dasgupta, VP Technology\\/Product Development, on the 14th November at 9 am \\u201310 am Eastern.\\r\\n\\r\\n \\r\\n\\r\\nThis session will focus on:\\r\\n\\r\\n*         What are key drivers of digital customer acquisition in Insurance\\r\\n\\r\\n*         What new innovations by InsurTechs and incumbents have entered the market\\r\\n\\r\\n*         EXL\\u2019s digital customer acquisition strategy in Insurance\\r\\n\\r\\n*         Review EXL\\u2019s Digital Customer Acquisition (DCA) platform \\r\\n\\r\\n \\r\\n\\r\\nTo prepare for the future, carriers are augmenting their \\u201Cfeet-on-the-street\\u201D customer acquisition model with a more agile, digital strategy by deploying end-to-end digital platforms. Companies have the opportunity to achieve profitable distribution by acquiring and onboarding sustainable customers more quickly and at a lower cost than traditional methods.\\r\\n\\r\\n \\r\\n\\r\\nDATE: 14th November, 9.00 am\\u201310.00 am Eastern, 7:30 pm\\u20138.30 pm IST \\r\\n\\r\\n \\r\\n\\r\\nThank you to Sandeep Manchanda and Chayan Dasgupta for sharing their insights on how EXL is applying Digital Intelligence to redefine customer acquisition for our Insurance clients. \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\nJoin Skype Meeting <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H>       \\r\\n\\r\\nTrouble Joining? Try Skype Web App <https:\\/\\/meet.lync.com\\/exlservice\\/amit.choudhary\\/M2NRN65H?sl=1>  \\r\\n\\r\\n \\r\\n\\r\\n \\r\\n\\r\\nJoin by Phone\\r\\n\\r\\nFind a local number <http:\\/\\/www.intercall.com\\/l\\/dial-in-number-lookup.php>  \\r\\n\\r\\n \\r\\n\\r\\nConference ID: 9549110989 \\r\\n\\r\\n \\r\\n\\r\\nHelp <http:\\/\\/go.microsoft.com\\/fwlink\\/?LinkId=389737>    \\r\\n\\r\\n \\r\\n\\r\\nUS 8773614628\\r\\n\\r\\nIndia 180030106096\\r\\n\\r\\nPhilippines 180011101824, 180087989954\\r\\n\\r\\nUK 08003761896\\r\\n\\r\\nCzech Republic 296180005\\r\\n\\r\\nRomania 0800895570\\r\\n\\r\\nSouth Africa 0800014682 \\r\\n\\r\\n[!\\r\\n\\r\\n.........................................................................................................................................\\r\\n\\r\\n \\r\\n\\r\\n\\n\",\"features\":{\"entities\":{}}}");
 
-    runner.enqueue(" ",attribs);
-//    runnerBr.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
+    runner.enqueue(" ", attribs);
+    //    runnerBr.enqueue(TestUtils.getFileInputStream(TEST_DATA_RESOURCE_DIR + batchFileName), attribs);
     runner.run();
 
     List<MockFlowFile> result = runner.getFlowFilesForRelationship(ptpc.REL_SUCCESS);
@@ -359,7 +327,7 @@ public class TestIngestionProcessorSubsequence extends TestIngestionProcessor
     String data = new String(result.get(0).toByteArray());
     assertNotNull(data);
 
-    /* extract the query results */
+    /* extract the PROP_QUERY results */
     String poleRes = JsonPath.read(data, "$.result.data['@value'][0]");
     assertNotNull(poleRes);
 

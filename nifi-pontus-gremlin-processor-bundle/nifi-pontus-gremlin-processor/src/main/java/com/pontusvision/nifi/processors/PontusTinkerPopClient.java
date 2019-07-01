@@ -19,6 +19,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -100,6 +101,8 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 public class PontusTinkerPopClient extends AbstractProcessor
 {
 
+  public boolean enableStopDuringTestsHook = true;
+
   final PropertyDescriptor PONTUS_GRAPH_EMBEDDED_SERVER = new PropertyDescriptor.Builder()
       .name("Tinkerpop Embedded Server").description(
           "Specifies whether an embedded Pontus Graph server should be used inside nifi. "
@@ -161,7 +164,6 @@ public class PontusTinkerPopClient extends AbstractProcessor
   //            .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
   //            .build();
 
-
   protected ExpressionLanguageScope getQueryStrExpressionLanguageScope()
   {
     return ExpressionLanguageScope.NONE;
@@ -222,7 +224,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
   EthernetAddress    addr    = EthernetAddress.fromInterface();
   TimeBasedGenerator uuidGen = Generators.timeBasedGenerator(addr);
 
-  Boolean useEmbeddedServer = true;
+  Boolean useEmbeddedServer = false;
   public ServerGremlinExecutor embeddedServer = null;
 
   static ClusterClientService clusterClientService;
@@ -302,6 +304,43 @@ public class PontusTinkerPopClient extends AbstractProcessor
     properties.add(WAITING_TIME);
     properties.add(TINKERPOP_QUERY_PARAM_PREFIX);
     return properties;
+  }
+
+  @OnStopped public void stopped()
+  {
+    if (enableStopDuringTestsHook)
+    {
+      closeClient("stopped");
+
+      queryStr = null;
+      queryAttribPrefixStr = null;
+      useEmbeddedServer = null;
+      confFileURI = null;
+    }
+
+  }
+
+  @OnScheduled
+  public void onScheduled(final ProcessContext context)
+  {
+    if (useEmbeddedServer == null)
+    {
+      useEmbeddedServer = Boolean.parseBoolean(context.getProperty(PONTUS_GRAPH_EMBEDDED_SERVER).getValue());
+    }
+    if (confFileURI == null)
+    {
+      confFileURI = context.getProperty(TINKERPOP_CLIENT_CONF_FILE_URI).getValue();
+    }
+    if (queryStr == null)
+    {
+      queryStr = context.getProperty(TINKERPOP_CLIENT_CONF_FILE_URI).getValue();
+    }
+
+    if (queryAttribPrefixStr == null)
+    {
+      queryAttribPrefixStr = context.getProperty(TINKERPOP_QUERY_PARAM_PREFIX).getValue();
+    }
+
   }
 
   @Override public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue,
@@ -734,11 +773,6 @@ public class PontusTinkerPopClient extends AbstractProcessor
     }
   }
 
-  @OnStopped public void stopped()
-  {
-    closeClient("stopped");
-  }
-
   public Bindings getBindings(FlowFile flowfile)
   {
     Map<String, String> allAttribs = flowfile.getAttributes();
@@ -761,7 +795,8 @@ public class PontusTinkerPopClient extends AbstractProcessor
 
   public String getQueryStr(ProcessContext ctx, Map<String, String> attribs)
   {
-    if (getQueryStrExpressionLanguageScope() == ExpressionLanguageScope.NONE){
+    if (getQueryStrExpressionLanguageScope() == ExpressionLanguageScope.NONE)
+    {
       return queryStr;
     }
     return ctx.getProperty(TINKERPOP_QUERY_STR).evaluateAttributeExpressions(attribs).getValue();
