@@ -58,14 +58,14 @@ services:
       - pontusvision-unit-test
 
     volumes:
-      - ../..:/sut
+      - ../../../..:/sut
       - ~/.m2:/root/.m2
       - pki_vol:/etc/pki
 
     ports:
       - "5010:5010"
 
-    working_dir: /sut/nifi-pontus-gremlin-processor
+    working_dir: /sut/pontus-nifi-processors/nifi-pontus-gremlin-processor-bundle/nifi-pontus-gremlin-processor
 
     command: >
       /bin/bash -c "

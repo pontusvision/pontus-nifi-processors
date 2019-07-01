@@ -452,100 +452,100 @@
             <artifactId>jackson-mapper-asl</artifactId>
             <version>${jackson-version}</version>
         </dependency>
-        <dependency>
-            <groupId>pv-gdpr</groupId>
-            <artifactId>pontus-gdpr-graph</artifactId>
-            <version>${pontus-gdpr-graph.version}</version>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>pv-gdpr</groupId>-->
+<!--            <artifactId>pontus-gdpr-graph</artifactId>-->
+<!--            <version>${pontus-gdpr-graph.version}</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
 
     </dependencies>
 
     <build>
 
         <plugins>
-            <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>0.26.0</version>
-                <executions>
-                    <execution>
-                        <id>start</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>build</goal>
-                            <goal>start</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>stop</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>stop</goal>
-                        </goals>
-                    </execution>
-                </executions>
+<!--            <plugin>-->
+<!--                <groupId>io.fabric8</groupId>-->
+<!--                <artifactId>docker-maven-plugin</artifactId>-->
+<!--                <version>0.26.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>start</id>-->
+<!--                        <phase>pre-integration-test</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>build</goal>-->
+<!--                            <goal>start</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>stop</id>-->
+<!--                        <phase>post-integration-test</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>stop</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
 
 
-                <configuration>
-                    <images>
-                        <image>
-                            <name>nowsci/samba-domain</name>
-                            <!--<build>-->
-                            <!--<dockerFile>${project.basedir}/Dockerfile</dockerFile>-->
-                            <!--</build>-->
-                            <run>
-                                <env>
-                                    <DOMAIN>PONTUSVISION.COM</DOMAIN>
-                                    <DOMAINPASS>ThisIsMyAdminPassword5663!!</DOMAINPASS>
-                                    <DNSFORWARDER>8.8.8.8</DNSFORWARDER>
-                                    <!--<HOSTIP=192.168.3.222" \-->
-                                </env>
-                                <ports>
-                                    <port>636:636</port>
-                                    <port>389:389</port>
-                                    <port>389:389/udp</port>
-                                </ports>
-                                <!--<wait>-->
-                                <!--&lt;!&ndash; Check for this URL to return a 200 return code .... &ndash;&gt;-->
-                                <!--<url>http://localhost:8080/wizard</url>-->
-                                <!--<time>120000</time>-->
-                                <!--</wait>-->
-                            </run>
-                        </image>
+<!--                <configuration>-->
+<!--                    <images>-->
+<!--                        <image>-->
+<!--                            <name>nowsci/samba-domain</name>-->
+<!--                            &lt;!&ndash;<build>&ndash;&gt;-->
+<!--                            &lt;!&ndash;<dockerFile>${project.basedir}/Dockerfile</dockerFile>&ndash;&gt;-->
+<!--                            &lt;!&ndash;</build>&ndash;&gt;-->
+<!--                            <run>-->
+<!--                                <env>-->
+<!--                                    <DOMAIN>PONTUSVISION.COM</DOMAIN>-->
+<!--                                    <DOMAINPASS>ThisIsMyAdminPassword5663!!</DOMAINPASS>-->
+<!--                                    <DNSFORWARDER>8.8.8.8</DNSFORWARDER>-->
+<!--                                    &lt;!&ndash;<HOSTIP=192.168.3.222" \&ndash;&gt;-->
+<!--                                </env>-->
+<!--                                <ports>-->
+<!--                                    <port>636:636</port>-->
+<!--                                    <port>389:389</port>-->
+<!--                                    <port>389:389/udp</port>-->
+<!--                                </ports>-->
+<!--                                &lt;!&ndash;<wait>&ndash;&gt;-->
+<!--                                &lt;!&ndash;&lt;!&ndash; Check for this URL to return a 200 return code .... &ndash;&gt;&ndash;&gt;-->
+<!--                                &lt;!&ndash;<url>http://localhost:8080/wizard</url>&ndash;&gt;-->
+<!--                                &lt;!&ndash;<time>120000</time>&ndash;&gt;-->
+<!--                                &lt;!&ndash;</wait>&ndash;&gt;-->
+<!--                            </run>-->
+<!--                        </image>-->
 
-                    </images>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.dkanejs.maven.plugins</groupId>
-                <artifactId>docker-compose-maven-plugin</artifactId>
-                <version>2.4.0</version>
-                <executions>
-                    <execution>
-                        <id>up</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>up</goal>
-                        </goals>
-                        <configuration>
-                            <composeFile>${project.basedir}/docker-compose/docker-compose.yml</composeFile>
-                            <detachedMode>true</detachedMode>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>down</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>down</goal>
-                        </goals>
-                        <configuration>
-                            <composeFile>${project.basedir}/docker-compose/docker-compose.yml</composeFile>
-                            <removeVolumes>true</removeVolumes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--                    </images>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+<!--            <plugin>-->
+<!--                <groupId>com.dkanejs.maven.plugins</groupId>-->
+<!--                <artifactId>docker-compose-maven-plugin</artifactId>-->
+<!--                <version>2.4.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>up</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>up</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <composeFile>${project.basedir}/docker-compose/docker-compose.yml</composeFile>-->
+<!--                            <detachedMode>true</detachedMode>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>down</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>down</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <composeFile>${project.basedir}/docker-compose/docker-compose.yml</composeFile>-->
+<!--                            <removeVolumes>true</removeVolumes>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
             <plugin>
                 <artifactId>maven-enforcer-plugin</artifactId>
