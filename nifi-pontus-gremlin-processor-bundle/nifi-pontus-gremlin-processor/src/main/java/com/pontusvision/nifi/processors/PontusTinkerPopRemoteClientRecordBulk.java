@@ -107,7 +107,7 @@ public class PontusTinkerPopRemoteClientRecordBulk extends PontusTinkerPopRemote
     try
     {
       final FlowFile tempFlowFile = flowFile;
-      checkGraphStatus();
+      checkGraphStatus(context);
 
       flowFile = session.write(flowFile, (in, out) -> {
 

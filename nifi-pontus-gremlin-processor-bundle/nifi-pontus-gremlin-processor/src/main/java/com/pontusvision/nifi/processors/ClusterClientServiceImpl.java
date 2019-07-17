@@ -96,7 +96,7 @@ class ClusterClientServiceImpl implements ClusterClientService
 
   }
 
-  private static void handleUnknownException(Throwable throwable)
+  private static void  handleUnknownException(Throwable throwable)
   {
 
     if (throwable != null)
@@ -111,7 +111,8 @@ class ClusterClientServiceImpl implements ClusterClientService
 
   private static boolean isResponseException(Throwable inner)
   {
-    return inner.getClass().isAssignableFrom(org.apache.tinkerpop.gremlin.driver.exception.ResponseException.class);
+    return inner != null && inner.getClass().isAssignableFrom(
+        org.apache.tinkerpop.gremlin.driver.exception.ResponseException.class);
   }
 
   @Override public void close(String event)

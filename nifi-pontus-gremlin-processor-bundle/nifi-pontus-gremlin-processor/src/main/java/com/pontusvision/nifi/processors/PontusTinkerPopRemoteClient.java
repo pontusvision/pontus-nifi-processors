@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Leo Martins
@@ -139,7 +140,16 @@ public class PontusTinkerPopRemoteClient extends PontusTinkerPopClient
     //    closeClient("stopped");
   }
 
-  @Override
+  public void checkGraphStatus(ProcessContext context)
+      throws FileNotFoundException, URISyntaxException, ExecutionException, InterruptedException
+  {
+    if (service == null)
+    {
+      service = context.getProperty(TINKERPOP_CLIENT_CONTROLLER_SERVICE_STR)
+                       .asControllerService(PontusTinkerpopControllerServiceInterface.class);
+    }
+  }
+    @Override
   public byte[] runQuery(Bindings bindings, String queryString) throws FileNotFoundException, URISyntaxException
   {
 
