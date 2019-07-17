@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.script.Bindings;
@@ -731,6 +732,7 @@ public class TestIngestionProcessorBulkRequests extends TestIngestionProcessorDo
   }
 
 
+  @Ignore
   @Test public void testBatchNormalOrder() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -797,6 +799,7 @@ public class TestIngestionProcessorBulkRequests extends TestIngestionProcessorDo
 
   }
 
+  @Ignore
   @Test public void testMatchingScoresRawIdx45Pcnt() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -846,6 +849,7 @@ public class TestIngestionProcessorBulkRequests extends TestIngestionProcessorDo
 
   }
 
+  @Ignore
   @Test public void testMatchingScores90Pcnt() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -882,6 +886,8 @@ public class TestIngestionProcessorBulkRequests extends TestIngestionProcessorDo
 
   }
 
+
+  @Ignore
   @Test public void testMatchingScores45Pcnt() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -919,6 +925,7 @@ public class TestIngestionProcessorBulkRequests extends TestIngestionProcessorDo
 
   }
 
+  @Ignore
   @Test public void testMatchingScoresJohnSmith() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");
@@ -957,6 +964,7 @@ public class TestIngestionProcessorBulkRequests extends TestIngestionProcessorDo
 
   }
 
+  @Ignore
   @Test public void testMatching() throws Exception
   {
     List<MockFlowFile> result = testCSVRecordsCommon("phase1.csv");

@@ -77,7 +77,8 @@ services:
         export RES=$$(/usr/bin/curl -s  -H 'Content-Type: application/json' -X POST -d '' http://graphdb-nifi:3001/home/vertex_labels);
         echo Waiting for vertex_labels... got this: $$RES;
         echo Connected!;
-        mvn -Dtest=TestIngestionProcessorBulkRequests,TestIngestionProcessorSimple,TestIngestionProcessorSimpleSubsequence -Dmaven.surefire.debug='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5010 -Xnoagent -Djava.compiler=NONE' -DforkCount=0 test
+        #mvn -Dtest=TestIngestionProcessorBulkRequests,TestIngestionProcessorSimple,TestIngestionProcessorSimpleSubsequence -Dmaven.surefire.debug='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5010 -Xnoagent -Djava.compiler=NONE' -DforkCount=0 test
+        mvn -Dtest=TestIngestionProcessorBulkRequests -Dmaven.surefire.debug='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5010 -Xnoagent -Djava.compiler=NONE' -DforkCount=0 test
       "
 volumes:
   pki_vol:
