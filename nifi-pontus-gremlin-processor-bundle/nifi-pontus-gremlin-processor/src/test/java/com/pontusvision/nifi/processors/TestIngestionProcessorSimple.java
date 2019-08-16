@@ -343,6 +343,7 @@ public class TestIngestionProcessorSimple extends TestIngestionProcessorDockerCo
   }
 
 
+
   @Test public void testIssueNLPQueryStuck() throws Exception
   {
 

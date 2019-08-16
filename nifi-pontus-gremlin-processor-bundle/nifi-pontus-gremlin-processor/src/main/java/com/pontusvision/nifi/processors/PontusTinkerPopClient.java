@@ -52,6 +52,7 @@ import javax.annotation.Nullable;
 import javax.script.Bindings;
 import javax.script.SimpleBindings;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -793,7 +794,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
     return bindings;
   }
 
-  public String getQueryStr(ProcessContext ctx, Map<String, String> attribs)
+  public String getQueryStr(ProcessContext ctx, Map<String, String> attribs) throws IOException
   {
     if (getQueryStrExpressionLanguageScope() == ExpressionLanguageScope.NONE)
     {
@@ -802,7 +803,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
     return ctx.getProperty(TINKERPOP_QUERY_STR).evaluateAttributeExpressions(attribs).getValue();
   }
 
-  public String getQueryStr(ProcessSession session)
+  public String getQueryStr(ProcessSession session) throws IOException
   {
     return queryStr;
   }
