@@ -56,7 +56,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
   final static PropertyDescriptor CSV_REPLACEMENT_PREFIX = new PropertyDescriptor.Builder()
       .name("Replacement Prefix").defaultValue("pg_").required(true)
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+      .addValidator(new StandardValidators.StringLengthValidator(0,1000)).build();
 
   final static PropertyDescriptor CSV_DELIMITER = new PropertyDescriptor.Builder()
       .name("CSV Delimiter").defaultValue(",").required(true)
