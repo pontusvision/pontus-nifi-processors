@@ -3,7 +3,7 @@ FROM maven:3.6-jdk-8-alpine as builder
 COPY --from=graphdblib /root/.m2/ /root/.m2/
 RUN apk add git && \
     cd / &&   \
-     git  clone --depth 1 --single-branch --branch master https://github.com/pontusvision/pontus-nifi-processors.git && \
+    git  clone --depth 1 --single-branch --branch master https://github.com/pontusvision/pontus-nifi-processors.git && \
     cd pontus-nifi-processors && \
     mvn clean package -U -DskipTests
 

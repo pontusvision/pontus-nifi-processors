@@ -334,7 +334,7 @@ public class PontusTinkerPopClient extends AbstractProcessor
     }
     if (queryStr == null)
     {
-      queryStr = context.getProperty(TINKERPOP_CLIENT_CONF_FILE_URI).getValue();
+      queryStr = context.getProperty(TINKERPOP_QUERY_STR).getValue();
     }
 
     if (queryAttribPrefixStr == null)
