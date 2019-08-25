@@ -194,6 +194,7 @@ public class CleanCSVHeader extends AbstractProcessor
                   }
                   sb.append(prefixText).append(headers[i].trim());
                 }
+                sb.append("\n");
                 headerSub = sb.toString();
 
               }
