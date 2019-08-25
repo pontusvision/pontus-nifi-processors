@@ -60,7 +60,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
   final static PropertyDescriptor CSV_DELIMITER = new PropertyDescriptor.Builder()
       .name("CSV Delimiter").defaultValue(",").required(true)
-      .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
+      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
   public static final Relationship SUCCESS = new Relationship.Builder().name("SUCCESS")
                                                                        .description("Success relationship").build();
