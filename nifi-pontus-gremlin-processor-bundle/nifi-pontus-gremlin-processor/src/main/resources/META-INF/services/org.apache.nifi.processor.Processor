@@ -10,7 +10,8 @@ com.pontusvision.nifi.processors.PontusTinkerPopRemoteClientRecordBulk
 com.pontusvision.nifi.processors.PontusTinkerPopRemoteClientExprLanguageQueryStr
 com.pontusvision.nifi.processors.LeakyBucketThrottle
 com.pontusvision.nifi.processors.WaitAndBatch
-com.pontusvision.nifi.processors.PontusGetRelationalDBMetadata
-com.pontusvision.nifi.processors.PontusGetRelationalDBMetadataDirect
-com.pontusvision.nifi.processors.PontusGetRelationalDBCatalogues
-com.pontusvision.nifi.processors.PontusGetRelationalDBCataloguesDirect
+com.pontusvision.nifi.processors.PontusGetDBMetadata
+com.pontusvision.nifi.processors.PontusGetDBMetadataDirect
+com.pontusvision.nifi.processors.PontusGetDBCatalogues
+com.pontusvision.nifi.processors.PontusGetDBCataloguesDirect
+com.pontusvision.nifi.processors.PontusGetDBMetadataCSVDirect

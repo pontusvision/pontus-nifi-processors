@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -62,7 +63,7 @@ import java.util.logging.Logger;
     + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
     + "This processor is meant to be run on the primary node only.")
 
-public class PontusGetRelationalDBMetadataDirect extends PontusGetRelationalDBMetadata
+public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
 {
 
 
@@ -74,27 +75,27 @@ public class PontusGetRelationalDBMetadataDirect extends PontusGetRelationalDBMe
   public static final PropertyDescriptor DBCP_SERVICE_CONNECTION_URL = new PropertyDescriptor.Builder()
       .name("list-db-tables-db-connection-url").displayName("Database Connection URL").addValidator(Validator.VALID)
       .description("The URL that is used to obtain connection to database").required(true)
-      .defaultValue("jdbc:mariadb://localhost:3306/").expressionLanguageSupported(true).build();
+      .defaultValue("jdbc:mariadb://localhost:3306/").expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
   public static final PropertyDescriptor DBCP_SERVICE_CONNECTION_DRIVER_CLASS = new PropertyDescriptor.Builder()
       .name("list-db-tables-db-connection-driver-class").displayName("Database Driver Class Name").addValidator(Validator.VALID)
       .description("The driver class name that is used to obtain connection to database").required(true)
-      .defaultValue("org.mariadb.jdbc.Driver").expressionLanguageSupported(true).build();
+      .defaultValue("org.mariadb.jdbc.Driver").expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
   public static final PropertyDescriptor DBCP_SERVICE_CONNECTION_DRIVER_LOCATION = new PropertyDescriptor.Builder()
       .name("list-db-tables-db-connection-driver-location").displayName("Database Driver Location(s)").addValidator(Validator.VALID)
       .description("The comma-separated list of jar files (and dependencies) that is used to obtain connection to database").required(true)
-      .defaultValue("/usr/share/java/mariadb-java-client-2.3.0.jar").expressionLanguageSupported(true).build();
+      .defaultValue("/usr/share/java/mariadb-java-client-2.3.0.jar").expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
   public static final PropertyDescriptor DBCP_SERVICE_CONNECTION_USER = new PropertyDescriptor.Builder()
       .name("list-db-tables-db-connection-user").displayName("Database Connection User").addValidator(Validator.VALID)
       .description("The User Name  that is used to obtain connection to database").required(true)
-      .defaultValue("root").expressionLanguageSupported(true).build();
+      .defaultValue("root").expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
   public static final PropertyDescriptor DBCP_SERVICE_CONNECTION_PASS = new PropertyDescriptor.Builder()
       .name("list-db-tables-db-connection-pass").displayName("Database Connection Password").addValidator(Validator.VALID)
       .description("The Password  that is used to obtain connection to database").required(true)
-      .defaultValue("").sensitive(true).expressionLanguageSupported(true).build();
+      .defaultValue("").sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
 
   /*
@@ -186,7 +187,7 @@ public class PontusGetRelationalDBMetadataDirect extends PontusGetRelationalDBMe
         // Split and trim the entries
         final ClassLoader classLoader = ClassLoaderUtils.getCustomClassLoader(
             locationString,
-            PontusGetRelationalDBMetadataDirect.class.getClassLoader(),
+            PontusGetDBMetadataDirect.class.getClassLoader(),
             (dir, name) -> name != null && name.endsWith(".jar")
         );
 

@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
     + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
     + "This processor is meant to be run on the primary node only.")
 
-public class PontusGetRelationalDBCatalogues extends PontusGetRelationalDBMetadata
+public class PontusGetDBCatalogues extends PontusGetDBMetadata
 {
 
   /*

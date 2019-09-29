@@ -74,7 +74,7 @@ import java.util.stream.Stream;
     + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
     + "This processor is meant to be run on the primary node only.")
 
-public class PontusGetRelationalDBMetadata extends AbstractProcessor
+public class PontusGetDBMetadata extends AbstractProcessor
 {
 
   // Attribute names
@@ -188,6 +188,96 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
   {
     final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
     return dbcpService.getConnection();
+  }
+
+  public void handleRowSamples (String fqn, int numRows, Statement st, Map<String, JsonArrayBuilder> sampleRows) throws SQLException
+  {
+    final ComponentLog logger = getLogger();
+
+    final String countQuery = "SELECT * FROM " + fqn + " LIMIT " + numRows;
+
+    logger.debug("Executing query: {}", new Object[] { countQuery });
+    ResultSet rowsResult = st.executeQuery(countQuery);
+
+    while (rowsResult.next())
+    {
+      ResultSetMetaData metaData = rowsResult.getMetaData();
+      int colCount = metaData.getColumnCount();
+
+      for (int i = 1; i <= colCount; i++)
+      {
+        final String colName = metaData.getColumnName(i);
+        Object obj = rowsResult.getObject(i);
+        if (obj != null)
+        {
+          String val = obj.toString();
+          JsonArrayBuilder vals = sampleRows.putIfAbsent(colName, Json.createArrayBuilder());
+          if (vals == null)
+          {
+            vals = sampleRows.get(colName);
+          }
+          logger.info("colName = " + colName + "; val = " + val + "; vals = " + vals);
+          vals.add(val);
+        }
+      }
+      //                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
+    }
+  }
+
+  public FlowFile addResultsToFlowFile (
+      ProcessSession session,
+      FlowFile flowFile,
+      JsonObjectBuilder jsonBuilder,
+      DatabaseMetaData dbMetaData,
+      String tableCatalog,
+      String tableSchema,
+      String tableName,
+      String fqn,
+      String tableType,
+      String tableRemarks
+      ){
+
+    if (tableCatalog != null)
+    {
+      jsonBuilder.add("tableCatalog", tableCatalog);
+      flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
+    }
+    if (tableSchema != null)
+    {
+      jsonBuilder.add("tableSchema", tableSchema);
+
+      flowFile = session.putAttribute(flowFile, DB_TABLE_SCHEMA, tableSchema);
+    }
+    jsonBuilder.add("tableName", tableName);
+    jsonBuilder.add("fqn", fqn);
+    jsonBuilder.add("tableType", tableType != null ? tableType: "");
+
+    flowFile = session.putAttribute(flowFile, DB_TABLE_NAME, tableName);
+    flowFile = session.putAttribute(flowFile, DB_TABLE_FULLNAME, fqn);
+    flowFile = session.putAttribute(flowFile, DB_TABLE_TYPE, tableType);
+    if (tableRemarks != null)
+    {
+      jsonBuilder.add("tableRemarks", tableRemarks);
+
+      flowFile = session.putAttribute(flowFile, DB_TABLE_REMARKS, tableRemarks);
+
+    }
+
+    flowFile = session.putAttribute(flowFile, DB_COL_METADATA, jsonBuilder.build().toString());
+
+    String transitUri;
+    try
+    {
+      transitUri = dbMetaData.getURL();
+    }
+    catch (SQLException sqle)
+    {
+      transitUri = "<unknown>";
+    }
+    session.getProvenanceReporter().receive(flowFile, transitUri);
+
+    return flowFile;
+
   }
 
   public String getStateMapPropertiesKey(ProcessContext context){
@@ -392,34 +482,7 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
           {
             try (Statement st = con.createStatement())
             {
-              final String countQuery = "SELECT * FROM " + fqn + " LIMIT " + numRows;
-
-              logger.debug("Executing query: {}", new Object[] { countQuery });
-              ResultSet rowsResult = st.executeQuery(countQuery);
-
-              while (rowsResult.next())
-              {
-                ResultSetMetaData metaData = rowsResult.getMetaData();
-                int colCount = metaData.getColumnCount();
-
-                for (int i = 1; i <= colCount; i++)
-                {
-                  final String colName = metaData.getColumnName(i);
-                  Object obj = rowsResult.getObject(i);
-                  if (obj != null)
-                  {
-                    String val = obj.toString();
-                    JsonArrayBuilder vals = sampleRows.putIfAbsent(colName, Json.createArrayBuilder());
-                    if (vals == null)
-                    {
-                      vals = sampleRows.get(colName);
-                    }
-                    logger.info("colName = " + colName + "; val = " + val + "; vals = " + vals);
-                    vals.add(val);
-                  }
-                }
-//                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
-              }
+              handleRowSamples(fqn,numRows,st,sampleRows);
             }
             catch (SQLException se)
             {
@@ -543,44 +606,8 @@ public class PontusGetRelationalDBMetadata extends AbstractProcessor
           }
           jsonBuilder.add("colMetaData", jsonArrayBuilder);
 
-          if (tableCatalog != null)
-          {
-            jsonBuilder.add("tableCatalog", tableCatalog);
-            flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
-          }
-          if (tableSchema != null)
-          {
-            jsonBuilder.add("tableSchema", tableSchema);
+          flowFile = addResultsToFlowFile(session, flowFile,jsonBuilder,dbMetaData,tableCatalog,tableSchema,tableName,fqn,tableType,tableRemarks);
 
-            flowFile = session.putAttribute(flowFile, DB_TABLE_SCHEMA, tableSchema);
-          }
-          jsonBuilder.add("tableName", tableName);
-          jsonBuilder.add("fqn", fqn);
-          jsonBuilder.add("tableType", tableType != null ? tableType: "");
-
-          flowFile = session.putAttribute(flowFile, DB_TABLE_NAME, tableName);
-          flowFile = session.putAttribute(flowFile, DB_TABLE_FULLNAME, fqn);
-          flowFile = session.putAttribute(flowFile, DB_TABLE_TYPE, tableType);
-          if (tableRemarks != null)
-          {
-            jsonBuilder.add("tableRemarks", tableRemarks);
-
-            flowFile = session.putAttribute(flowFile, DB_TABLE_REMARKS, tableRemarks);
-
-          }
-
-          flowFile = session.putAttribute(flowFile, DB_COL_METADATA, jsonBuilder.build().toString());
-
-          String transitUri;
-          try
-          {
-            transitUri = dbMetaData.getURL();
-          }
-          catch (SQLException sqle)
-          {
-            transitUri = "<unknown>";
-          }
-          session.getProvenanceReporter().receive(flowFile, transitUri);
           session.transfer(flowFile, REL_SUCCESS);
 
           stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));

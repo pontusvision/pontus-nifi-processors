@@ -35,7 +35,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
-import static com.pontusvision.nifi.processors.PontusGetRelationalDBMetadataDirect.*;
+import static com.pontusvision.nifi.processors.PontusGetDBMetadataDirect.*;
 
 /**
  * A processor to retrieve a list of tables (and their metadata) from a database connection
@@ -51,7 +51,7 @@ import static com.pontusvision.nifi.processors.PontusGetRelationalDBMetadataDire
     + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
     + "This processor is meant to be run on the primary node only.")
 
-public class PontusGetRelationalDBCataloguesDirect extends PontusGetRelationalDBCatalogues
+public class PontusGetDBCataloguesDirect extends PontusGetDBCatalogues
 {
 
   /*
