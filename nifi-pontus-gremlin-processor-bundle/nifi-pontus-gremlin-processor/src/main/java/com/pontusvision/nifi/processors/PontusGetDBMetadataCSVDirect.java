@@ -18,6 +18,7 @@ package com.pontusvision.nifi.processors;
  * limitations under the License.
  */
 
+import com.opencsv.CSVWriter;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -32,6 +33,9 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.sql.DatabaseMetaData;
 import java.util.LinkedList;
 import java.util.List;
@@ -73,7 +77,7 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
       String fqn,
       String tableType,
       String tableRemarks
-  )
+  ) throws IOException
   {
     flowFile = super
         .addResultsToFlowFile(session, flowFile, jsonBuilder, dbMetaData, tableCatalog, tableSchema, tableName, fqn,
@@ -90,7 +94,7 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
 
   }
 
-  public String addColDataAsCSV(JsonObject dbData)
+  public String addColDataAsCSV(JsonObject dbData) throws IOException
   {
     JsonArray colMetaData = dbData.getJsonArray("colMetaData");
 /*
@@ -122,24 +126,27 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
           String     colName      = colDetailObj.getString("colName");
           colNames.add(colName);
           JsonArray rowsForCol = colDetailObj.getJsonArray("vals");
-          if (rows.size() < rowsForCol.size())
+          if (rowsForCol != null)
           {
-            for (int j = rows.size(), jlen = rowsForCol.size(); j < jlen; j++)
+            if (rows.size() < rowsForCol.size())
             {
-              rows.add(new LinkedList<>());
+              for (int j = rows.size(), jlen = rowsForCol.size(); j < jlen; j++)
+              {
+                rows.add(new LinkedList<>());
+              }
             }
-          }
 
-          for (int j = 0, jlen = rowsForCol.size(); j < jlen; j++)
-          {
-            List<String> row = rows.get(j);
-            if (row == null)
+            for (int j = 0, jlen = rowsForCol.size(); j < jlen; j++)
             {
-              row = new LinkedList<>();
-              rows.add(row);
+              List<String> row = rows.get(j);
+              if (row == null)
+              {
+                row = new LinkedList<>();
+                rows.add(row);
+              }
+              String val = rowsForCol.getString(j);
+              row.add(val);
             }
-            String val = rowsForCol.getString(j);
-            row.add(val);
           }
 
         }
@@ -150,15 +157,23 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
 
       sb.append(colNamesStr, 1, colNamesStr.length() - 1);
       sb.append("\n");
+      StringWriter sw = new StringWriter();
+
+      CSVWriter writer = new CSVWriter(sw);
 
       ilen = rows.size();
       for (int i = 0; i < ilen; i++)
       {
-        String rowStr = rows.get(i).toString();
-        sb.append(rowStr, 1, rowStr.length() - 1);
-        sb.append("\n");
+        writer.writeNext(rows.get(i).toArray(new String[0]));
+//        String rowStr = rows.get(i).toString();
+//
+//
+//        sb.append(rowStr, 1, rowStr.length() - 1);
+//        sb.append("\n");
 
       }
+      writer.close();
+      sb.append(sw.toString());
 
     }
 

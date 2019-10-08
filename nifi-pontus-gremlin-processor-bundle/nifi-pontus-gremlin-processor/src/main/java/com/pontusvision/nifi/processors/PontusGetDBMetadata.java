@@ -235,7 +235,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
       String fqn,
       String tableType,
       String tableRemarks
-      ){
+      ) throws IOException
+  {
 
     if (tableCatalog != null)
     {
