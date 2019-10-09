@@ -318,9 +318,10 @@ public class PontusGetDBMetadata extends AbstractProcessor
       throw new ProcessException(ioe);
     }
 
-    try (final Connection con = getConnection(context,session.get()))
+    Connection con = null;
+    try
     {
-
+      con = getConnection(context,session.get());
       DatabaseMetaData dbMetaData = con.getMetaData();
       ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
       while (rs.next())
@@ -634,6 +635,18 @@ public class PontusGetDBMetadata extends AbstractProcessor
     {
       throw new ProcessException(e);
     }
+    finally
+    {
+      try
+      {
+        con.close();
+      }
+      catch (SQLException e)
+      {
+        throw new ProcessException(e);
+      }
+    }
+
   }
 
 }
