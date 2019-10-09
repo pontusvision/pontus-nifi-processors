@@ -247,6 +247,8 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
 
 
     Connection conn = dataSource.getConnection();
+
+    dataSource.close();
     return  conn;
   }
 

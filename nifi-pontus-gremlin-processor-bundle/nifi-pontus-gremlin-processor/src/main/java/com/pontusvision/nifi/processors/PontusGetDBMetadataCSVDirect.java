@@ -130,7 +130,8 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
           if (rowsForCol == null){
             for (int j = 0, jlen = this.numRows; j < jlen; j++)
             {
-              List<String> row = rows.get(j);
+
+              List<String> row = rows.size() <= j ? null : rows.get(j);
               if (row == null)
               {
                 row = new LinkedList<>();

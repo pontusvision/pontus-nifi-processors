@@ -641,7 +641,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
       {
         con.close();
       }
-      catch (SQLException e)
+      catch (Throwable e)
       {
         throw new ProcessException(e);
       }
