@@ -109,6 +109,8 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
     relationships = Collections.unmodifiableSet(_relationships);
   }
 
+
+
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
 

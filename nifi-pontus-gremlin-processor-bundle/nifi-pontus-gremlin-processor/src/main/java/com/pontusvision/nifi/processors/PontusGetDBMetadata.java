@@ -150,6 +150,9 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
   protected static Set<Relationship> relationships;
 
+  protected   int numRows = 0;
+
+
   /*
    * Will also create a Set of relationships
    */
@@ -160,6 +163,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
     _relationships.add(REL_SUCCESS);
     relationships = Collections.unmodifiableSet(_relationships);
   }
+
+
 
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
@@ -297,7 +302,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
         context.getProperty(TABLE_TYPES).getValue().split("\\s*,\\s*") :
         null;
     final boolean includeCount = context.getProperty(INCLUDE_COUNT).asBoolean();
-    final int numRows = context.getProperty(NUM_ROWS).asInteger();
+    this.numRows = context.getProperty(NUM_ROWS).asInteger();
     final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
     final StateManager stateManager = context.getStateManager();
@@ -479,7 +484,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
           }
           Map<String, JsonArrayBuilder> sampleRows = new HashMap<>();
 
-          if (numRows > 0)
+          if (this.numRows > 0)
           {
             try (Statement st = con.createStatement())
             {

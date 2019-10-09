@@ -126,7 +126,22 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
           String     colName      = colDetailObj.getString("colName");
           colNames.add(colName);
           JsonArray rowsForCol = colDetailObj.getJsonArray("vals");
-          if (rowsForCol != null)
+
+          if (rowsForCol == null){
+            for (int j = 0, jlen = this.numRows; j < jlen; j++)
+            {
+              List<String> row = rows.get(j);
+              if (row == null)
+              {
+                row = new LinkedList<>();
+                rows.add(row);
+              }
+              String val = "";
+              row.add(val);
+            }
+
+          }
+          else
           {
             if (rows.size() < rowsForCol.size())
             {
