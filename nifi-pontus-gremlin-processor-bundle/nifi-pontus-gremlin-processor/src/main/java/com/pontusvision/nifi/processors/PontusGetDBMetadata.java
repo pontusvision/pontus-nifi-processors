@@ -68,7 +68,7 @@ import java.util.stream.Stream;
             + "\"GLOBAL TEMPORARY\", \"LOCAL TEMPORARY\", \"ALIAS\", \"SYNONYM\""),
     @WritesAttribute(attribute = "pg_rdb_table_remarks", description = "Contains the name of a database table from the connection"),
     @WritesAttribute(attribute = "pg_rdb_table_count", description = "Contains the number of rows in the table") })
-   @Stateful(scopes = {
+@Stateful(scopes = {
     Scope.CLUSTER }, description = "After performing a listing of tables, the timestamp of the query is stored. "
     + "This allows the Processor to not re-list tables the next time that the Processor is run. Specifying the refresh interval in the processor properties will "
     + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
@@ -78,18 +78,20 @@ public class PontusGetDBMetadata extends AbstractProcessor
 {
 
   // Attribute names
-  public static final String DB_TABLE_NAME = "pg_rdb_table_name";
-  public static final String DB_TABLE_CATALOG = "pg_rdb_table_catalog";
-  public static final String DB_TABLE_SCHEMA = "pg_rdb_table_schema";
+  public static final String DB_TABLE_NAME     = "pg_rdb_table_name";
+  public static final String DB_TABLE_CATALOG  = "pg_rdb_table_catalog";
+  public static final String DB_TABLE_SCHEMA   = "pg_rdb_table_schema";
   public static final String DB_TABLE_FULLNAME = "pg_rdb_table_fullname";
-  public static final String DB_TABLE_TYPE = "pg_rdb_table_type";
-  public static final String DB_TABLE_REMARKS = "pg_rdb_table_remarks";
-  public static final String DB_TABLE_COUNT = "pg_rdb_table_count";
-  public static final String DB_COL_METADATA = "pg_rdb_col_metadata";
+  public static final String DB_TABLE_TYPE     = "pg_rdb_table_type";
+  public static final String DB_TABLE_REMARKS  = "pg_rdb_table_remarks";
+  public static final String DB_TABLE_COUNT    = "pg_rdb_table_count";
+  public static final String DB_COL_METADATA   = "pg_rdb_col_metadata";
 
   // Relationships
   public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-      .description("All FlowFiles that are received are routed to success").build();
+                                                                           .description(
+                                                                               "All FlowFiles that are received are routed to success")
+                                                                           .build();
 
   // Property descriptors
   public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
@@ -98,7 +100,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
       .identifiesControllerService(DBCPService.class).build();
 
   public static final PropertyDescriptor CATALOG = new PropertyDescriptor.Builder().name("list-db-tables-catalog")
-      .displayName("Catalog").description(
+                                                                                   .displayName("Catalog").description(
           "The name of a catalog from which to list database tables. The name must match the catalog name as it is stored in the database. "
               + "If the property is not set, the catalog name will not be used to narrow the search for tables. If the property is set to an empty string, "
               + "tables without a catalog will be listed.").required(false).addValidator(Validator.VALID).build();
@@ -110,7 +112,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
               + "If the property is not set, the schema name will not be used to narrow the search for tables. If the property is set to an empty string, "
               + "tables without a schema will be listed.").required(false).addValidator(Validator.VALID).build();
 
-  public static final PropertyDescriptor TABLE_NAME_PATTERN = new PropertyDescriptor.Builder()
+  public static final PropertyDescriptor TABLE_NAME_PATTERN  = new PropertyDescriptor.Builder()
       .name("list-db-tables-name-pattern").displayName("Table Name Pattern").description(
           "A pattern for matching tables in the database. Within a pattern, \"%\" means match any substring of 0 or more characters, "
               + "and \"_\" means match any one character. The pattern must match the table name as it is stored in the database. "
@@ -124,21 +126,31 @@ public class PontusGetDBMetadata extends AbstractProcessor
       .addValidator(Validator.VALID).build();
 
   public static final PropertyDescriptor TABLE_TYPES = new PropertyDescriptor.Builder().name("list-db-tables-types")
-      .displayName("Table Types").description(
-          "A comma-separated list of table types to include. For example, some databases support TABLE and VIEW types. If the property is not set, "
-              + "tables of all types will be returned.").required(false).defaultValue("TABLE")
-      .addValidator(Validator.VALID).build();
+                                                                                       .displayName("Table Types")
+                                                                                       .description(
+                                                                                           "A comma-separated list of table types to include. For example, some databases support TABLE and VIEW types. If the property is not set, "
+                                                                                               + "tables of all types will be returned.")
+                                                                                       .required(false)
+                                                                                       .defaultValue("TABLE")
+                                                                                       .addValidator(Validator.VALID)
+                                                                                       .build();
 
   public static final PropertyDescriptor INCLUDE_COUNT = new PropertyDescriptor.Builder().name("list-db-include-count")
-      .displayName("Include Count").description(
-          "Whether to include the table's row count as a flow file attribute. This affects performance as a database query will be generated "
-              + "for each table in the retrieved list.").required(true).allowableValues("true", "false")
-      .defaultValue("false").build();
+                                                                                         .displayName("Include Count")
+                                                                                         .description(
+                                                                                             "Whether to include the table's row count as a flow file attribute. This affects performance as a database query will be generated "
+                                                                                                 + "for each table in the retrieved list.")
+                                                                                         .required(true)
+                                                                                         .allowableValues("true",
+                                                                                             "false")
+                                                                                         .defaultValue("false").build();
 
   public static final PropertyDescriptor NUM_ROWS = new PropertyDescriptor.Builder().name("list-db-num-rows")
-      .displayName("Num Rows").description(
-          "The number of rows to retrieve from each table.  Setting this to 0 does not retrieve any data.  Note that this can cause performance issues in large tables")
-      .required(true).addValidator(StandardValidators.NUMBER_VALIDATOR).defaultValue("0").build();
+                                                                                    .displayName("Num Rows")
+                                                                                    .description(
+                                                                                        "The number of rows to retrieve from each table.  Setting this to 0 does not retrieve any data.  Note that this can cause performance issues in large tables")
+                                                                                    .required(true).addValidator(
+          StandardValidators.NUMBER_VALIDATOR).defaultValue("0").build();
 
   public static final PropertyDescriptor REFRESH_INTERVAL = new PropertyDescriptor.Builder()
       .name("list-db-refresh-interval").displayName("Refresh Interval").description(
@@ -150,8 +162,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
   protected static Set<Relationship> relationships;
 
-  protected   int numRows = 0;
-
+  protected int numRows = 0;
 
   /*
    * Will also create a Set of relationships
@@ -163,8 +174,6 @@ public class PontusGetDBMetadata extends AbstractProcessor
     _relationships.add(REL_SUCCESS);
     relationships = Collections.unmodifiableSet(_relationships);
   }
-
-
 
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
@@ -195,7 +204,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
     return dbcpService.getConnection();
   }
 
-  public void handleRowSamples (String fqn, int numRows, Statement st, Map<String, JsonArrayBuilder> sampleRows) throws SQLException
+  public void handleRowSamples(String fqn, int numRows, Statement st, Map<String, JsonArrayBuilder> sampleRows)
+      throws SQLException
   {
     final ComponentLog logger = getLogger();
 
@@ -207,15 +217,15 @@ public class PontusGetDBMetadata extends AbstractProcessor
     while (rowsResult.next())
     {
       ResultSetMetaData metaData = rowsResult.getMetaData();
-      int colCount = metaData.getColumnCount();
+      int               colCount = metaData.getColumnCount();
 
       for (int i = 1; i <= colCount; i++)
       {
         final String colName = metaData.getColumnName(i);
-        Object obj = rowsResult.getObject(i);
+        Object       obj     = rowsResult.getObject(i);
         if (obj != null)
         {
-          String val = obj.toString();
+          String           val  = obj.toString();
           JsonArrayBuilder vals = sampleRows.putIfAbsent(colName, Json.createArrayBuilder());
           if (vals == null)
           {
@@ -229,7 +239,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
     }
   }
 
-  public FlowFile addResultsToFlowFile (
+  public FlowFile addResultsToFlowFile(
       ProcessSession session,
       FlowFile flowFile,
       JsonObjectBuilder jsonBuilder,
@@ -240,7 +250,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
       String fqn,
       String tableType,
       String tableRemarks
-      ) throws IOException
+  ) throws IOException
   {
 
     if (tableCatalog != null)
@@ -256,7 +266,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
     }
     jsonBuilder.add("tableName", tableName);
     jsonBuilder.add("fqn", fqn);
-    jsonBuilder.add("tableType", tableType != null ? tableType: "");
+    jsonBuilder.add("tableType", tableType != null ? tableType : "");
 
     flowFile = session.putAttribute(flowFile, DB_TABLE_NAME, tableName);
     flowFile = session.putAttribute(flowFile, DB_TABLE_FULLNAME, fqn);
@@ -286,16 +296,18 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
   }
 
-  public String getStateMapPropertiesKey(ProcessContext context){
+  public String getStateMapPropertiesKey(ProcessContext context)
+  {
     final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
     return dbcpService.toString();
   }
+
   @Override public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException
   {
-    final ComponentLog logger = getLogger();
-    final String catalog = context.getProperty(CATALOG).getValue();
-    final String schemaPattern = context.getProperty(SCHEMA_PATTERN).getValue();
-    final String tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).getValue();
+    final ComponentLog logger           = getLogger();
+    final String       catalog          = context.getProperty(CATALOG).getValue();
+    final String       schemaPattern    = context.getProperty(SCHEMA_PATTERN).getValue();
+    final String       tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).getValue();
 
     final String columnNamePattern = context.getProperty(COLUMN_NAME_PATTERN).getValue();
     final String[] tableTypes = context.getProperty(TABLE_TYPES).isSet() ?
@@ -305,8 +317,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
     this.numRows = context.getProperty(NUM_ROWS).asInteger();
     final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
-    final StateManager stateManager = context.getStateManager();
-    final StateMap stateMap;
+    final StateManager        stateManager = context.getStateManager();
+    final StateMap            stateMap;
     final Map<String, String> stateMapProperties;
     try
     {
@@ -321,28 +333,28 @@ public class PontusGetDBMetadata extends AbstractProcessor
     Connection con = null;
     try
     {
-      con = getConnection(context,session.get());
+      con = getConnection(context, session.get());
       DatabaseMetaData dbMetaData = con.getMetaData();
-      ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
+      ResultSet        rs         = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
       while (rs.next())
       {
         final String tableCatalog = rs.getString(1);
-        final String tableSchema = rs.getString(2);
-        final String tableName = rs.getString(3);
-        final String tableType = rs.getString(4);
+        final String tableSchema  = rs.getString(2);
+        final String tableName    = rs.getString(3);
+        final String tableType    = rs.getString(4);
         final String tableRemarks = rs.getString(5);
 
         // Build fully-qualified name
         String fqn = Stream.of(tableCatalog, tableSchema, tableName).filter(segment -> !StringUtils.isEmpty(segment))
-            .collect(Collectors.joining("."));
+                           .collect(Collectors.joining("."));
 
-        String lastTimestampForTable = stateMapProperties.get(fqn);
-        boolean refreshTable = true;
+        String  lastTimestampForTable = stateMapProperties.get(fqn);
+        boolean refreshTable          = true;
         try
         {
           // Refresh state if the interval has elapsed
-          long lastRefreshed = -1;
-          final long currentTime = System.currentTimeMillis();
+          long       lastRefreshed = -1;
+          final long currentTime   = System.currentTimeMillis();
           if (!StringUtils.isEmpty(lastTimestampForTable))
           {
             lastRefreshed = Long.parseLong(lastTimestampForTable);
@@ -385,7 +397,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
           while (primaryKeysRs.next())
           {
             final String colName = primaryKeysRs.getString(4);
-            final String pkName = primaryKeysRs.getString(6);
+            final String pkName  = primaryKeysRs.getString(6);
             primaryKeys.put(colName, pkName);
           }
 
@@ -450,12 +462,12 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
           while (foreignKeysRs.next())
           {
-            final String colName = foreignKeysRs.getString(4);
+            final String colName     = foreignKeysRs.getString(4);
             final String fkTableName = foreignKeysRs.getString(7);
-            final String fkColName = foreignKeysRs.getString(8);
+            final String fkColName   = foreignKeysRs.getString(8);
 
             String val = Stream.of(fkTableName, fkColName).filter(segment -> !StringUtils.isEmpty(segment))
-                .collect(Collectors.joining("."));
+                               .collect(Collectors.joining("."));
 
             foreignKeys.put(colName, val);
           }
@@ -477,7 +489,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
             catch (SQLException se)
             {
               logger.error("Couldn't get row count for {}", new Object[] { fqn });
-              logger.error("Got exception",se);
+              logger.error("Got exception", se);
 
               session.remove(flowFile);
               continue;
@@ -489,12 +501,12 @@ public class PontusGetDBMetadata extends AbstractProcessor
           {
             try (Statement st = con.createStatement())
             {
-              handleRowSamples(fqn,numRows,st,sampleRows);
+              handleRowSamples(fqn, numRows, st, sampleRows);
             }
             catch (SQLException se)
             {
               logger.error("Couldn't get row values for {}", new Object[] { fqn });
-              logger.error("Got exception",se);
+              logger.error("Got exception", se);
               session.remove(flowFile);
               continue;
             }
@@ -587,22 +599,22 @@ public class PontusGetDBMetadata extends AbstractProcessor
             final String foreignKeyName = foreignKeys.get(colName);
 
             //            final int dataType = colsRs.getInt(5);
-            final String typeName = rs.getString(6);
-            final int colSize = colsRs.getInt(7);
-            final String colRemarks = colsRs.getString(12);
-            final String defVal = colsRs.getString(13);
-            final int octetLen = colsRs.getInt(16);
-            final int ordinalPos = colsRs.getInt(17);
-            final String isAutoIncr = colsRs.getString(23);
-            final String isGenerated = colsRs.getString(24);
-            final JsonArrayBuilder vals = numRows == 0 ? null : sampleRows.get(colName);
+            final String           typeName    = rs.getString(6);
+            final int              colSize     = colsRs.getInt(7);
+            final String           colRemarks  = colsRs.getString(12);
+            final String           defVal      = colsRs.getString(13);
+            final int              octetLen    = colsRs.getInt(16);
+            final int              ordinalPos  = colsRs.getInt(17);
+            final String           isAutoIncr  = colsRs.getString(23);
+            final String           isGenerated = colsRs.getString(24);
+            final JsonArrayBuilder vals        = numRows == 0 ? null : sampleRows.get(colName);
 
             colDetail.add("colName", colName).add("primaryKeyName", (primaryKeyName != null) ? primaryKeyName : "")
-                .add("foreignKeyName", (foreignKeyName != null) ? foreignKeyName : "")
-                .add("typeName", (typeName!= null)? typeName: "")
-                .add("colRemarks", (colRemarks != null) ? colRemarks : "").add("isAutoIncr", isAutoIncr)
-                .add("isGenerated", isGenerated).add("octetLen", octetLen).add("ordinalPos", ordinalPos)
-                .add("defVal", (defVal != null) ? defVal : "").add("colSize", colSize);
+                     .add("foreignKeyName", (foreignKeyName != null) ? foreignKeyName : "")
+                     .add("typeName", (typeName != null) ? typeName : "")
+                     .add("colRemarks", (colRemarks != null) ? colRemarks : "").add("isAutoIncr", isAutoIncr)
+                     .add("isGenerated", isGenerated).add("octetLen", octetLen).add("ordinalPos", ordinalPos)
+                     .add("defVal", (defVal != null) ? defVal : "").add("colSize", colSize);
             if (vals != null)
             {
               colDetail.add("vals", vals);
@@ -613,7 +625,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
           }
           jsonBuilder.add("colMetaData", jsonArrayBuilder);
 
-          flowFile = addResultsToFlowFile(session, flowFile,jsonBuilder,dbMetaData,tableCatalog,tableSchema,tableName,fqn,tableType,tableRemarks);
+          flowFile = addResultsToFlowFile(session, flowFile, jsonBuilder, dbMetaData, tableCatalog, tableSchema,
+              tableName, fqn, tableType, tableRemarks);
 
           session.transfer(flowFile, REL_SUCCESS);
 
@@ -639,7 +652,10 @@ public class PontusGetDBMetadata extends AbstractProcessor
     {
       try
       {
-        con.close();
+        if (con != null)
+        {
+          con.close();
+        }
       }
       catch (Throwable e)
       {
