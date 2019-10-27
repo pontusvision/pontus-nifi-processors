@@ -68,8 +68,8 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
 
 
   // Relationships
-  public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-      .description("All FlowFiles that are received are routed to success").build();
+//  public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
+//      .description("All FlowFiles that are received are routed to success").build();
 
   // Property descriptors
   public static final PropertyDescriptor DBCP_SERVICE_CONNECTION_URL = new PropertyDescriptor.Builder()
@@ -106,6 +106,7 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
   {
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
   }
 
