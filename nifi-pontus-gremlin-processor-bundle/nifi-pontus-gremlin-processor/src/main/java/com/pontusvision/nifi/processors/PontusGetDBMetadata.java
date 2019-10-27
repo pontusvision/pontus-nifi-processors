@@ -618,7 +618,10 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
           session.transfer(flowFile, REL_SUCCESS);
 
-          stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
+          if (stateMapProperties != null)
+          {
+            stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
+          }
         }
       }
       // Update the timestamps for listed tables
