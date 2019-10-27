@@ -93,6 +93,12 @@ public class PontusGetDBMetadata extends AbstractProcessor
                                                                                "All FlowFiles that are received are routed to success")
                                                                            .build();
 
+
+  public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
+                                                                           .description(
+                                                                               "All FlowFiles that are received are routed to failure")
+                                                                           .build();
+
   // Property descriptors
   public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
       .name("list-db-tables-db-connection").displayName("Database Connection Pooling Service")
@@ -172,6 +178,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
   }
 
@@ -317,23 +324,28 @@ public class PontusGetDBMetadata extends AbstractProcessor
     this.numRows = context.getProperty(NUM_ROWS).asInteger();
     final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
-    final StateManager        stateManager = context.getStateManager();
-    final StateMap            stateMap;
-    final Map<String, String> stateMapProperties;
-    try
-    {
-      stateMap = stateManager.getState(Scope.CLUSTER);
-      stateMapProperties = new HashMap<>(stateMap.toMap());
-    }
-    catch (IOException ioe)
-    {
-      throw new ProcessException(ioe);
-    }
+    final StateManager  stateManager       = context.getStateManager();
+    StateMap            stateMap           = null;
+    Map<String, String> stateMapProperties = null;
 
+    final FlowFile origFlowFile = session.get();
+
+    if (origFlowFile != null)
+    {
+      try
+      {
+        stateMap = stateManager.getState(Scope.CLUSTER);
+        stateMapProperties = new HashMap<>(stateMap.toMap());
+      }
+      catch (IOException ioe)
+      {
+        throw new ProcessException(ioe);
+      }
+    }
     Connection con = null;
     try
     {
-      con = getConnection(context, session.get());
+      con = getConnection(context, origFlowFile);
       DatabaseMetaData dbMetaData = con.getMetaData();
       ResultSet        rs         = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
       while (rs.next())
@@ -348,33 +360,9 @@ public class PontusGetDBMetadata extends AbstractProcessor
         String fqn = Stream.of(tableCatalog, tableSchema, tableName).filter(segment -> !StringUtils.isEmpty(segment))
                            .collect(Collectors.joining("."));
 
-        String  lastTimestampForTable = stateMapProperties.get(fqn);
-        boolean refreshTable          = true;
-        try
-        {
-          // Refresh state if the interval has elapsed
-          long       lastRefreshed = -1;
-          final long currentTime   = System.currentTimeMillis();
-          if (!StringUtils.isEmpty(lastTimestampForTable))
-          {
-            lastRefreshed = Long.parseLong(lastTimestampForTable);
-          }
-          if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval)))
-          {
-            stateMapProperties.remove(lastTimestampForTable);
-          }
-          else
-          {
-            refreshTable = false;
-          }
-        }
-        catch (final NumberFormatException nfe)
-        {
-          getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
-              + "query until this is accomplished.", nfe);
-          context.yield();
-          return;
-        }
+        String  lastTimestampForTable = stateMapProperties == null ? null : stateMapProperties.get(fqn);
+        boolean refreshTable          = shouldRefreshTable(lastTimestampForTable, refreshInterval, stateMapProperties);
+
         if (refreshTable)
         {
           ResultSet primaryKeysRs = dbMetaData.getPrimaryKeys(catalog, tableSchema, tableName);
@@ -471,7 +459,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
             foreignKeys.put(colName, val);
           }
-          FlowFile flowFile = session.create();
+          FlowFile flowFile = origFlowFile == null? session.create(): session.create(origFlowFile);
 
           if (includeCount)
           {
@@ -634,22 +622,32 @@ public class PontusGetDBMetadata extends AbstractProcessor
         }
       }
       // Update the timestamps for listed tables
-      if (stateMap.getVersion() == -1)
+      if (stateMap != null)
       {
-        stateManager.setState(stateMapProperties, Scope.CLUSTER);
-      }
-      else
-      {
-        stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
+        if (stateMap.getVersion() == -1)
+        {
+          stateManager.setState(stateMapProperties, Scope.CLUSTER);
+        }
+        else
+        {
+          stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
+        }
       }
 
     }
     catch (final SQLException | IOException | InitializationException e)
     {
-      throw new ProcessException(e);
+      FlowFile error = origFlowFile == null ? session.create() : session.create(origFlowFile);
+      error = session.putAttribute(error, "pg_db_metadata_error", e.toString());
+      session.transfer(error, REL_FAILURE);
+//      throw new ProcessException(e);
     }
     finally
     {
+      if (origFlowFile != null)
+      {
+        session.remove(origFlowFile);
+      }
       try
       {
         if (con != null)
@@ -659,9 +657,45 @@ public class PontusGetDBMetadata extends AbstractProcessor
       }
       catch (Throwable e)
       {
-        throw new ProcessException(e);
+        FlowFile error = origFlowFile == null ? session.create() : session.create(origFlowFile);
+        error = session.putAttribute(error, "pg_db_metadata_error", e.toString());
+        session.transfer(error, REL_FAILURE);
+
       }
     }
+
+  }
+
+  protected boolean shouldRefreshTable(String lastTimestampForTable, Long refreshInterval, Map<String, String> stateMapProperties )
+  {
+    boolean refreshTable = true;
+    try
+    {
+      // Refresh state if the interval has elapsed
+      long       lastRefreshed = -1;
+      final long currentTime   = System.currentTimeMillis();
+      if (!StringUtils.isEmpty(lastTimestampForTable))
+      {
+        lastRefreshed = Long.parseLong(lastTimestampForTable);
+      }
+      if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval)))
+      {
+        if (stateMapProperties != null)
+        {
+          stateMapProperties.remove(lastTimestampForTable);
+        }
+      }
+      else
+      {
+        refreshTable = false;
+      }
+    }
+    catch (final NumberFormatException nfe)
+    {
+      getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
+          + "query until this is accomplished.", nfe);
+    }
+    return refreshTable;
 
   }
 
