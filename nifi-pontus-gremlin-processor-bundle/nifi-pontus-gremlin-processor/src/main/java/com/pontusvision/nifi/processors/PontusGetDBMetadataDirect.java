@@ -225,17 +225,17 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
   {
 
     final String drv = context.getProperty(DBCP_SERVICE_CONNECTION_DRIVER_CLASS).evaluateAttributeExpressions(flowFile).getValue();
-    final String user = context.getProperty(DBCP_SERVICE_CONNECTION_USER).evaluateAttributeExpressions().getValue();
-    final String passw = context.getProperty(DBCP_SERVICE_CONNECTION_PASS).evaluateAttributeExpressions().getValue();
+    final String user = context.getProperty(DBCP_SERVICE_CONNECTION_USER).evaluateAttributeExpressions(flowFile).getValue();
+    final String passw = context.getProperty(DBCP_SERVICE_CONNECTION_PASS).evaluateAttributeExpressions(flowFile).getValue();
 
     BasicDataSource dataSource = new BasicDataSource();
     dataSource.setDriverClassName(drv);
 
     // Optional driver URL, when exist, this URL will be used to locate driver jar file location
-    final String urlString = context.getProperty(DBCP_SERVICE_CONNECTION_DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
+    final String urlString = context.getProperty(DBCP_SERVICE_CONNECTION_DRIVER_LOCATION).evaluateAttributeExpressions(flowFile).getValue();
     dataSource.setDriverClassLoader(getDriverClassLoader(urlString, drv));
 
-    final String dburl = context.getProperty(DBCP_SERVICE_CONNECTION_URL).evaluateAttributeExpressions().getValue();
+    final String dburl = context.getProperty(DBCP_SERVICE_CONNECTION_URL).evaluateAttributeExpressions(flowFile).getValue();
 
     dataSource.setUrl(dburl);
     dataSource.setUsername(user);
@@ -243,7 +243,7 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
 
     context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
         .forEach((dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(),
-            context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
+            context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions(flowFile).getValue()));
 
 
     Connection conn = dataSource.getConnection();
