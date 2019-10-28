@@ -330,7 +330,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
     final FlowFile origFlowFile = session.get();
 
-    if (origFlowFile != null)
+    if (origFlowFile == null)
     {
       try
       {
