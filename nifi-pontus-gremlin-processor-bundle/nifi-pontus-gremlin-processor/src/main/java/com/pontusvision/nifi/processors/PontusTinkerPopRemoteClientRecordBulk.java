@@ -84,8 +84,11 @@ public class PontusTinkerPopRemoteClientRecordBulk extends PontusTinkerPopRemote
       return;
     }
 
+    if (service == null){
+      service = context.getProperty(TINKERPOP_CLIENT_CONTROLLER_SERVICE_STR).asControllerService(PontusTinkerpopControllerServiceInterface.class);
+    }
 
-      final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
+    final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
                                                      .asControllerService(RecordReaderFactory.class);
 
     final AtomicInteger recordCount = new AtomicInteger();
