@@ -256,6 +256,7 @@ public class PontusTinkerPopRemoteClient extends PontusTinkerPopClient
     getLogger().error("Failed to process {}; will route to failure", new Object[] { flowFile, e });
     //    session.transfer(flowFile, REL_FAILURE);
 
+    service = null;
 //    closeClient("Error");
     if (flowFile != null)
     {
