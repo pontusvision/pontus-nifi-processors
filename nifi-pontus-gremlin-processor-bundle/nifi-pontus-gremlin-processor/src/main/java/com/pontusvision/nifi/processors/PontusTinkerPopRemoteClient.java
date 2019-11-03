@@ -138,6 +138,7 @@ public class PontusTinkerPopRemoteClient extends PontusTinkerPopClient
   @OnStopped public void stopped()
   {
     //    closeClient("stopped");
+    service = null;
   }
 
   public void checkGraphStatus(ProcessContext context)
