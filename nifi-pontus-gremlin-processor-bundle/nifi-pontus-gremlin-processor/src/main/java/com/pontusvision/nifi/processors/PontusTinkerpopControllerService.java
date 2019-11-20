@@ -79,7 +79,10 @@ import java.util.List;
 
   @OnDisabled public void shutdown()
   {
-    clusterClientService.close("shutdown PontusTinkerpopControllerService");
+    if (clusterClientService != null)
+    {
+      clusterClientService.close("shutdown PontusTinkerpopControllerService");
+    }
 
   }
 
