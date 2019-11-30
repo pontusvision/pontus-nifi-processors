@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -37,8 +38,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.sql.DatabaseMetaData;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * A processor to retrieve a list of tables (and their metadata) from a database connection
@@ -64,6 +64,15 @@ import java.util.List;
 
 public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
 {
+
+  static
+  {
+    Set<Relationship> _relationships = new HashSet<>();
+    _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
+    relationships = Collections.unmodifiableSet(_relationships);
+  }
+
 
   @Override
   public FlowFile addResultsToFlowFile(
