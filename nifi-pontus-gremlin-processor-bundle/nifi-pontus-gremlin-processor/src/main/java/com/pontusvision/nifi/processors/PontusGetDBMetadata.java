@@ -219,8 +219,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
     final ComponentLog logger = getLogger();
 
     final String countQuery = isOracle?
-        "SELECT * FROM " + fqn + " FETCH FIRST " + numRows +" ROWS ONLY;":
-        "SELECT * FROM " + fqn + " LIMIT " + numRows +";";
+        "SELECT * FROM " + fqn + " SAMPLE( 20 ) WHERE ROWNUM <= " + numRows :
+        "SELECT * FROM " + fqn + " LIMIT " + numRows ;
 
     logger.debug("Executing query: {}", new Object[] { countQuery });
     ResultSet rowsResult = st.executeQuery(countQuery);
