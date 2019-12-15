@@ -77,6 +77,8 @@ import java.util.stream.Stream;
 public class PontusGetDBMetadata extends AbstractProcessor
 {
 
+  public static boolean isOracle = false;
+
   // Attribute names
   public static final String DB_TABLE_NAME     = "pg_rdb_table_name";
   public static final String DB_TABLE_CATALOG  = "pg_rdb_table_catalog";
@@ -216,7 +218,9 @@ public class PontusGetDBMetadata extends AbstractProcessor
   {
     final ComponentLog logger = getLogger();
 
-    final String countQuery = "SELECT * FROM " + fqn + " LIMIT " + numRows;
+    final String countQuery = isOracle?
+        "SELECT * FROM " + fqn + " FETCH FIRST " + numRows +" ROWS ONLY;":
+        "SELECT * FROM " + fqn + " LIMIT " + numRows +";";
 
     logger.debug("Executing query: {}", new Object[] { countQuery });
     ResultSet rowsResult = st.executeQuery(countQuery);
@@ -465,7 +469,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
           {
             try (Statement st = con.createStatement())
             {
-              final String countQuery = "SELECT COUNT(1) FROM " + fqn;
+              final String countQuery = "SELECT COUNT(1) FROM " + fqn + ";";
 
               logger.debug("Executing query: {}", new Object[] { countQuery });
               ResultSet countResult = st.executeQuery(countQuery);

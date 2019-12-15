@@ -66,7 +66,6 @@ import java.util.logging.Logger;
 public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
 {
 
-
   // Relationships
 //  public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
 //      .description("All FlowFiles that are received are routed to success").build();
@@ -229,6 +228,7 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
     final String user = context.getProperty(DBCP_SERVICE_CONNECTION_USER).evaluateAttributeExpressions(flowFile).getValue();
     final String passw = context.getProperty(DBCP_SERVICE_CONNECTION_PASS).evaluateAttributeExpressions(flowFile).getValue();
 
+    isOracle = (drv.toLowerCase().contains("oracle"));
     BasicDataSource dataSource = new BasicDataSource();
     dataSource.setDriverClassName(drv);
 
