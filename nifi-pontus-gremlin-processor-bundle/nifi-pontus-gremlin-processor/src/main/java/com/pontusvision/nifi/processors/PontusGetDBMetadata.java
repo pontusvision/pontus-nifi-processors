@@ -246,9 +246,11 @@ public class PontusGetDBMetadata extends AbstractProcessor
           vals.add(val);
         }
       }
+
       //                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
     }
     rowsResult.close();
+    st.close();
   }
 
   public FlowFile addResultsToFlowFile(
