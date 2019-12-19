@@ -248,6 +248,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
       }
       //                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
     }
+    rowsResult.close();
   }
 
   public FlowFile addResultsToFlowFile(
@@ -392,6 +393,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
             final String pkName  = primaryKeysRs.getString(6);
             primaryKeys.put(colName, pkName);
           }
+          primaryKeysRs.close();
 
           ResultSet foreignKeysRs = dbMetaData.getImportedKeys(catalog, tableSchema, tableName);
           /*
@@ -463,6 +465,9 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
             foreignKeys.put(colName, val);
           }
+
+          foreignKeysRs.close();
+
           FlowFile flowFile = origFlowFile == null? session.create(): session.create(origFlowFile);
 
           if (includeCount)
@@ -477,6 +482,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
               {
                 flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(countResult.getLong(1)));
               }
+              countResult.close();
             }
             catch (SQLException se)
             {
@@ -591,7 +597,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
             final String foreignKeyName = foreignKeys.get(colName);
 
             //            final int dataType = colsRs.getInt(5);
-            final String           typeName    = rs.getString(6);
+            final String           typeName    = colsRs.getString(6);
             final int              colSize     = colsRs.getInt(7);
             final String           colRemarks  = colsRs.getString(12);
             final String           defVal      = colsRs.getString(13);
@@ -605,7 +611,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
                      .add("foreignKeyName", (foreignKeyName != null) ? foreignKeyName : "")
                      .add("typeName", (typeName != null) ? typeName : "")
                      .add("colRemarks", (colRemarks != null) ? colRemarks : "").add("isAutoIncr", isAutoIncr)
-                     .add("isGenerated", isGenerated).add("octetLen", octetLen).add("ordinalPos", ordinalPos)
+                     .add("isGenerated", (isGenerated != null)? isGenerated: "NO").add("octetLen", octetLen).add("ordinalPos", ordinalPos)
                      .add("defVal", (defVal != null) ? defVal : "").add("colSize", colSize);
             if (vals != null)
             {
@@ -628,6 +634,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
           }
         }
       }
+
+      rs.close();
       // Update the timestamps for listed tables
       if (stateMap != null)
       {
