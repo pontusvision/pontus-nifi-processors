@@ -250,7 +250,6 @@ public class PontusGetDBMetadata extends AbstractProcessor
       //                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(rowsResult.getLong(1)));
     }
     rowsResult.close();
-    st.close();
   }
 
   public FlowFile addResultsToFlowFile(
@@ -485,6 +484,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
                 flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(countResult.getLong(1)));
               }
               countResult.close();
+              st.close();
             }
             catch (SQLException se)
             {
@@ -502,6 +502,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
             try (Statement st = con.createStatement())
             {
               handleRowSamples(fqn, numRows, st, sampleRows);
+              st.close();
             }
             catch (SQLException se)
             {
