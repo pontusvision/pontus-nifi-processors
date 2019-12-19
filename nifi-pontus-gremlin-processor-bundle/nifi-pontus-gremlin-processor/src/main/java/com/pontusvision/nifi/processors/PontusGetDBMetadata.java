@@ -624,6 +624,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
             logger.info("Found {}: {}", new Object[] { tableType, fqn });
           }
+          colsRs.close();
           jsonBuilder.add("colMetaData", jsonArrayBuilder);
 
           flowFile = addResultsToFlowFile(session, flowFile, jsonBuilder, dbMetaData, tableCatalog, tableSchema,
@@ -639,6 +640,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
       }
 
       rs.close();
+      con.close();
       // Update the timestamps for listed tables
       if (stateMap != null)
       {
