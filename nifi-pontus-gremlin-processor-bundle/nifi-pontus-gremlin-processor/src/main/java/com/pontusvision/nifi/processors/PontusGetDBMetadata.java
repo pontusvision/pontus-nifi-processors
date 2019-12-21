@@ -483,6 +483,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
           flowFile =  session.create(flowFile);
 
+          logger.info("Found {}: {}", new Object[] { tableType, fqn });
+
           if (includeCount)
           {
             try (Statement st = con.createStatement())
@@ -632,7 +634,6 @@ public class PontusGetDBMetadata extends AbstractProcessor
             }
             jsonArrayBuilder.add(colDetail);
 
-            logger.info("Found {}: {}", new Object[] { tableType, fqn });
           }
           colsRs.close();
           jsonBuilder.add("colMetaData", jsonArrayBuilder);
@@ -641,7 +642,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
               tableName, fqn, tableType, tableRemarks);
 
           session.transfer(flowFile, REL_SUCCESS);
-          session.commit();
+//          session.commit();
 
 
           if (stateMapProperties != null)
