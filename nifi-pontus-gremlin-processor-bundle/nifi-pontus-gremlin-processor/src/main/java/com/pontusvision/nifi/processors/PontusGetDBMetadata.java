@@ -309,7 +309,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
   }
 
-  public String getStateMapPropertiesKey(ProcessContext context)
+  public String getStateMapPropertiesKey(ProcessContext context, FlowFile flowFile)
   {
     final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
     return dbcpService.toString();

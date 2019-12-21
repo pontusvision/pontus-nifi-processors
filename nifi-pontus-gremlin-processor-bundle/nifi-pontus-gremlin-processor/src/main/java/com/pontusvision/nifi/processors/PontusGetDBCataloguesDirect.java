@@ -79,9 +79,9 @@ public class PontusGetDBCataloguesDirect extends PontusGetDBCatalogues
     return Collections.unmodifiableList(properties);
   }
 
-  @Override  public String getStateMapPropertiesKey(ProcessContext context)
+  @Override  public String getStateMapPropertiesKey(ProcessContext context,FlowFile flowFile)
   {
-    final String retVal = context.getProperty(DBCP_SERVICE_CONNECTION_URL).getValue();
+    final String retVal = context.getProperty(DBCP_SERVICE_CONNECTION_URL).evaluateAttributeExpressions(flowFile).getValue();
     return retVal;
   }
 

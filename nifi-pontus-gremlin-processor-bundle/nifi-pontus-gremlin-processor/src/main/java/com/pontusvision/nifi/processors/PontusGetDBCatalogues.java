@@ -95,6 +95,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
 //    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
 //    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
+    final FlowFile flowFileOrig = session.get();
     final StateManager stateManager = context.getStateManager();
     final StateMap stateMap;
     final Map<String, String> stateMapProperties;
@@ -105,6 +106,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     }
     catch (IOException ioe)
     {
+      session.transfer(flowFileOrig, REL_FAILURE);
       throw new ProcessException(ioe);
     }
     boolean refreshTable = true;
@@ -115,7 +117,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
       long lastRefreshed = -1;
       final long currentTime = System.currentTimeMillis();
 
-      String stateMapPropertiesKey = getStateMapPropertiesKey(context);
+      String stateMapPropertiesKey = getStateMapPropertiesKey(context, flowFileOrig);
       if (!StringUtils.isEmpty(stateMapPropertiesKey))
       {
         String lastTimestampForTable = stateMapProperties.get(stateMapPropertiesKey);
@@ -139,6 +141,8 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
       getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
           + "query until this is accomplished.", nfe);
       context.yield();
+      session.transfer(flowFileOrig, REL_FAILURE);
+
       return;
     }
     if (refreshTable)
@@ -152,7 +156,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
         {
           final String tableCatalog = rs.getString("TABLE_CAT");
 
-          FlowFile flowFile = session.create();
+          FlowFile flowFile = session.create(flowFileOrig);
 
           if (tableCatalog != null)
           {
@@ -175,6 +179,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
         }
         rs.close();
 
+        session.remove(flowFileOrig);
         // Update the timestamps for listed tables
         if (stateMap.getVersion() == -1)
         {
@@ -188,6 +193,8 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
       }
       catch (final SQLException | IOException| InitializationException e)
       {
+        session.transfer(flowFileOrig, REL_FAILURE);
+
         throw new ProcessException(e);
       }
     }
