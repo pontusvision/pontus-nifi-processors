@@ -166,6 +166,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
 
           stateMapProperties.put(transitUri, Long.toString(System.currentTimeMillis()));
         }
+        rs.close();
 
         // Update the timestamps for listed tables
         if (stateMap.getVersion() == -1)
