@@ -147,7 +147,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     }
     if (refreshTable)
     {
-      try (final Connection con = getConnection(context,session.get()))
+      try (final Connection con = getConnection(context,flowFileOrig))
       {
 
         DatabaseMetaData dbMetaData = con.getMetaData();
