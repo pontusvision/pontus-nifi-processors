@@ -56,6 +56,16 @@ import static com.pontusvision.nifi.processors.PontusGetDBMetadataDirect.*;
 
 public class PontusGetDBSchemaDirect extends PontusGetDBCataloguesDirect
 {
+
+  static
+  {
+
+    Set<Relationship> _relationships = new HashSet<>();
+    _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
+    relationships = Collections.unmodifiableSet(_relationships);
+  }
+
   public ResultSet getQuery(Connection con) throws SQLException
   {
     DatabaseMetaData dbMetaData = con.getMetaData();
@@ -74,15 +84,20 @@ public class PontusGetDBSchemaDirect extends PontusGetDBCataloguesDirect
      */
     while (rs.next())
     {
-      final String tableCatalog = rs.getString("TABLE_CAT");
-      final String tableSchema = rs.getString("TABLE_SCHEM");
+      final String tableCatalog = rs.getString(2 /*"TABLE_CAT"*/);
+      final String tableSchema = rs.getString(1 /*"TABLE_SCHEM" */);
 
       FlowFile flowFile = session.create(flowFileOrig);
+
+      if (tableSchema != null)
+      {
+        flowFile = session.putAttribute(flowFile, DB_TABLE_SCHEMA, tableSchema);
+      }
 
       if (tableCatalog != null)
       {
         flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
-        flowFile = session.putAttribute(flowFile, DB_TABLE_SCHEMA, tableSchema);
+
       }
 
 
