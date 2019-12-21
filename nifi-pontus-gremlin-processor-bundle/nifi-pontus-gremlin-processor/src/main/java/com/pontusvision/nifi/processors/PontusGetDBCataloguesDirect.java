@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -63,6 +64,7 @@ public class PontusGetDBCataloguesDirect extends PontusGetDBCatalogues
 
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
   }
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
@@ -76,6 +78,13 @@ public class PontusGetDBCataloguesDirect extends PontusGetDBCatalogues
 
     return Collections.unmodifiableList(properties);
   }
+
+  @Override  public String getStateMapPropertiesKey(ProcessContext context)
+  {
+    final String retVal = context.getProperty(DBCP_SERVICE_CONNECTION_URL).getValue();
+    return retVal;
+  }
+
 
 
   @Override public Connection getConnection(ProcessContext context, FlowFile flowFile)

@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -71,6 +72,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
 
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
   }
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
@@ -91,7 +93,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
   {
     final ComponentLog logger = getLogger();
 //    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+//    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
     final StateManager stateManager = context.getStateManager();
     final StateMap stateMap;
@@ -112,19 +114,24 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
       // Refresh state if the interval has elapsed
       long lastRefreshed = -1;
       final long currentTime = System.currentTimeMillis();
-      String lastTimestampForTable = stateMapProperties.get(getStateMapPropertiesKey(context));
 
-      if (!StringUtils.isEmpty(lastTimestampForTable))
+      String stateMapPropertiesKey = getStateMapPropertiesKey(context);
+      if (!StringUtils.isEmpty(stateMapPropertiesKey))
       {
-        lastRefreshed = Long.parseLong(lastTimestampForTable);
-      }
-      if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval)))
-      {
-        stateMapProperties.remove(lastTimestampForTable);
-      }
-      else
-      {
-        refreshTable = false;
+        String lastTimestampForTable = stateMapProperties.get(stateMapPropertiesKey);
+
+        if (!StringUtils.isEmpty(lastTimestampForTable))
+        {
+          lastRefreshed = Long.parseLong(lastTimestampForTable);
+        }
+        if (lastRefreshed == -1)
+        {
+          stateMapProperties.remove(lastTimestampForTable);
+        }
+        else
+        {
+          refreshTable = false;
+        }
       }
     }
     catch (final NumberFormatException nfe)
