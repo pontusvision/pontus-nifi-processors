@@ -13,5 +13,6 @@ com.pontusvision.nifi.processors.WaitAndBatch
 com.pontusvision.nifi.processors.PontusGetDBMetadata
 com.pontusvision.nifi.processors.PontusGetDBMetadataDirect
 com.pontusvision.nifi.processors.PontusGetDBCatalogues
+com.pontusvision.nifi.processors.PontusGetDBSchemaDirect
 com.pontusvision.nifi.processors.PontusGetDBCataloguesDirect
 com.pontusvision.nifi.processors.PontusGetDBMetadataCSVDirect

@@ -28,7 +28,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,7 +43,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A processor to retrieve a list of tables (and their metadata) from a database connection
@@ -75,6 +73,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
   }
+
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
     final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -83,6 +82,33 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     return Collections.unmodifiableList(properties);
   }
 
+  public ResultSet getQuery(Connection con) throws SQLException
+  {
+    DatabaseMetaData dbMetaData = con.getMetaData();
+    ResultSet        rs         = dbMetaData.getCatalogs();
+
+    return rs;
+
+  }
+
+  public void handleQuery(ResultSet rs, ProcessSession session, FlowFile flowFileOrig) throws SQLException
+  {
+    while (rs.next())
+    {
+      final String tableCatalog = rs.getString("TABLE_CAT");
+
+      FlowFile flowFile = session.create(flowFileOrig);
+
+      if (tableCatalog != null)
+      {
+        flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
+      }
+
+
+      session.transfer(flowFile, REL_SUCCESS);
+
+    }
+  }
 
   @Override public Set<Relationship> getRelationships()
   {
@@ -92,12 +118,13 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
   @Override public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException
   {
     final ComponentLog logger = getLogger();
-//    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-//    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+    //    final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+    //    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
-    final FlowFile flowFileOrig = session.get();
-    final StateManager stateManager = context.getStateManager();
-    final StateMap stateMap;
+    final FlowFile            flowFileOrig          = session.get();
+    final String              stateMapPropertiesKey = getStateMapPropertiesKey(context, flowFileOrig);
+    final StateManager        stateManager          = context.getStateManager();
+    final StateMap            stateMap;
     final Map<String, String> stateMapProperties;
     try
     {
@@ -114,10 +141,9 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     try
     {
       // Refresh state if the interval has elapsed
-      long lastRefreshed = -1;
-      final long currentTime = System.currentTimeMillis();
+      long       lastRefreshed = -1;
+      final long currentTime   = System.currentTimeMillis();
 
-      String stateMapPropertiesKey = getStateMapPropertiesKey(context, flowFileOrig);
       if (!StringUtils.isEmpty(stateMapPropertiesKey))
       {
         String lastTimestampForTable = stateMapProperties.get(stateMapPropertiesKey);
@@ -147,37 +173,17 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     }
     if (refreshTable)
     {
-      try (final Connection con = getConnection(context,flowFileOrig))
+      try (final Connection con = getConnection(context, flowFileOrig))
       {
 
-        DatabaseMetaData dbMetaData = con.getMetaData();
-        ResultSet rs = dbMetaData.getCatalogs();
-        while (rs.next())
-        {
-          final String tableCatalog = rs.getString("TABLE_CAT");
+        //        DatabaseMetaData dbMetaData = con.getMetaData();
+        ResultSet rs = getQuery(con);
 
-          FlowFile flowFile = session.create(flowFileOrig);
+        handleQuery(rs, session, flowFileOrig);
 
-          if (tableCatalog != null)
-          {
-            flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
-          }
-
-          String transitUri;
-          try
-          {
-            transitUri = dbMetaData.getURL();
-          }
-          catch (SQLException sqle)
-          {
-            transitUri = "<unknown>";
-          }
-          session.getProvenanceReporter().receive(flowFile, transitUri);
-          session.transfer(flowFile, REL_SUCCESS);
-
-          stateMapProperties.put(transitUri, Long.toString(System.currentTimeMillis()));
-        }
         rs.close();
+        stateMapProperties.put(stateMapPropertiesKey, Long.toString(System.currentTimeMillis()));
+
 
         session.remove(flowFileOrig);
         // Update the timestamps for listed tables
@@ -191,12 +197,13 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
         }
 
       }
-      catch (final SQLException | IOException| InitializationException e)
+      catch (final SQLException | IOException | InitializationException e)
       {
         session.transfer(flowFileOrig, REL_FAILURE);
 
         throw new ProcessException(e);
       }
+
     }
 
   }
