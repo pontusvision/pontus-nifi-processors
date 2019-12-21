@@ -348,10 +348,22 @@ public class PontusGetDBMetadata extends AbstractProcessor
         throw new ProcessException(ioe);
       }
     }
+    FlowFile flowFile = origFlowFile == null? session.create(): session.clone(origFlowFile);
+
+    if (origFlowFile != null)
+    {
+      session.remove(origFlowFile);
+    }
+
+
     Connection con = null;
     try
     {
-      con = getConnection(context, origFlowFile);
+
+
+      con = getConnection(context, flowFile);
+
+
       DatabaseMetaData dbMetaData = con.getMetaData();
       ResultSet        rs         = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
       while (rs.next())
@@ -469,7 +481,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
           foreignKeysRs.close();
 
-          FlowFile flowFile = origFlowFile == null? session.create(): session.create(origFlowFile);
+          flowFile =  session.create(flowFile);
 
           if (includeCount)
           {
@@ -491,7 +503,6 @@ public class PontusGetDBMetadata extends AbstractProcessor
               logger.error("Couldn't get row count for {}", new Object[] { fqn });
               logger.error("Got exception", se);
 
-              session.remove(flowFile);
               continue;
             }
           }
@@ -508,7 +519,6 @@ public class PontusGetDBMetadata extends AbstractProcessor
             {
               logger.error("Couldn't get row values for {}", new Object[] { fqn });
               logger.error("Got exception", se);
-              session.remove(flowFile);
               continue;
             }
 
@@ -631,6 +641,8 @@ public class PontusGetDBMetadata extends AbstractProcessor
               tableName, fqn, tableType, tableRemarks);
 
           session.transfer(flowFile, REL_SUCCESS);
+          session.commit();
+
 
           if (stateMapProperties != null)
           {
@@ -641,6 +653,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
       rs.close();
       con.close();
+      con = null;
       // Update the timestamps for listed tables
       if (stateMap != null)
       {
@@ -657,17 +670,13 @@ public class PontusGetDBMetadata extends AbstractProcessor
     }
     catch (final SQLException | IOException | InitializationException e)
     {
-      FlowFile error = origFlowFile == null ? session.create() : session.create(origFlowFile);
+      FlowFile error =  session.create(flowFile);
       error = session.putAttribute(error, "pg_db_metadata_error", e.toString());
       session.transfer(error, REL_FAILURE);
 //      throw new ProcessException(e);
     }
     finally
     {
-      if (origFlowFile != null)
-      {
-        session.remove(origFlowFile);
-      }
       try
       {
         if (con != null)
@@ -677,7 +686,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
       }
       catch (Throwable e)
       {
-        FlowFile error = origFlowFile == null ? session.create() : session.create(origFlowFile);
+        FlowFile error =  session.create(flowFile);
         error = session.putAttribute(error, "pg_db_metadata_error", e.toString());
         session.transfer(error, REL_FAILURE);
 
