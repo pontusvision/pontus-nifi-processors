@@ -69,6 +69,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
   {
 
     Set<Relationship> _relationships = new HashSet<>();
+    _relationships.add(REL_ORIGINAL);
     _relationships.add(REL_SUCCESS);
     _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
@@ -185,7 +186,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
         stateMapProperties.put(stateMapPropertiesKey, Long.toString(System.currentTimeMillis()));
 
 
-        session.remove(flowFileOrig);
+        session.transfer(flowFileOrig, REL_ORIGINAL);
         // Update the timestamps for listed tables
         if (stateMap.getVersion() == -1)
         {
@@ -207,7 +208,7 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     }
     else
     {
-      session.transfer(flowFileOrig, REL_SUCCESS);
+      session.transfer(flowFileOrig, REL_ORIGINAL);
 
     }
 
