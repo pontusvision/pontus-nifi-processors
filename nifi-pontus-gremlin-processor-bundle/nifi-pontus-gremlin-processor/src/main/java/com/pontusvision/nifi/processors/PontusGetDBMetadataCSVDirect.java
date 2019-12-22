@@ -69,6 +69,7 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
   {
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_ORIGINAL);
     _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
   }
