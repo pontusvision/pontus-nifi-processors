@@ -55,6 +55,15 @@ import static com.pontusvision.nifi.processors.PontusGetDBMetadataDirect.*;
 public class PontusGetDBCataloguesDirect extends PontusGetDBCatalogues
 {
 
+  static
+  {
+
+    Set<Relationship> _relationships = new HashSet<>();
+    _relationships.add(REL_ORIGINAL);
+    _relationships.add(REL_SUCCESS);
+    _relationships.add(REL_FAILURE);
+    relationships = Collections.unmodifiableSet(_relationships);
+  }
 
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
