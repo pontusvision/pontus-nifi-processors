@@ -55,18 +55,7 @@ import static com.pontusvision.nifi.processors.PontusGetDBMetadataDirect.*;
 public class PontusGetDBCataloguesDirect extends PontusGetDBCatalogues
 {
 
-  /*
-   * Will ensure that the list of property descriptors is build only once.
-   * Will also create a Set of relationships
-   */
-  static
-  {
 
-    Set<Relationship> _relationships = new HashSet<>();
-    _relationships.add(REL_SUCCESS);
-    _relationships.add(REL_FAILURE);
-    relationships = Collections.unmodifiableSet(_relationships);
-  }
   @Override protected List<PropertyDescriptor> getSupportedPropertyDescriptors()
   {
     final List<PropertyDescriptor> properties = new ArrayList<>();
