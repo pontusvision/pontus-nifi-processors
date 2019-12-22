@@ -106,6 +106,7 @@ public class PontusGetDBMetadataDirect extends PontusGetDBMetadata
     Set<Relationship> _relationships = new HashSet<>();
     _relationships.add(REL_SUCCESS);
     _relationships.add(REL_FAILURE);
+    _relationships.add(REL_ORIGINAL);
     relationships = Collections.unmodifiableSet(_relationships);
   }
 

@@ -90,13 +90,18 @@ public class PontusGetDBMetadata extends AbstractProcessor
   public static final String DB_COL_METADATA   = "pg_rdb_col_metadata";
 
   // Relationships
-  public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
+  public static final Relationship REL_SUCCESS = new Relationship.Builder().name("Success")
                                                                            .description(
                                                                                "All FlowFiles that are received are routed to success")
                                                                            .build();
 
 
-  public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
+  public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("Original")
+                                                                           .description(
+                                                                               "The original flow file")
+                                                                           .build();
+
+  public static final Relationship REL_FAILURE = new Relationship.Builder().name("Failure")
                                                                            .description(
                                                                                "All FlowFiles that are received are routed to failure")
                                                                            .build();
@@ -179,6 +184,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
   {
 
     Set<Relationship> _relationships = new HashSet<>();
+    _relationships.add(REL_ORIGINAL);
     _relationships.add(REL_SUCCESS);
     _relationships.add(REL_FAILURE);
     relationships = Collections.unmodifiableSet(_relationships);
@@ -336,6 +342,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
     StateMap            stateMap           = null;
     Map<String, String> stateMapProperties = null;
 
+    Map<String,String> attribs =  new HashMap<>();
 
     if (origFlowFile == null)
     {
@@ -349,12 +356,21 @@ public class PontusGetDBMetadata extends AbstractProcessor
         throw new ProcessException(ioe);
       }
     }
-    FlowFile flowFile = origFlowFile == null? session.create(): session.clone(origFlowFile);
-
-    if (origFlowFile != null)
+    else
     {
-//      session.remove(origFlowFile);
+      attribs.putAll(origFlowFile.getAttributes());
+
+      session.transfer(origFlowFile,REL_ORIGINAL);
     }
+
+
+//    FlowFile flowFile = origFlowFile == null? session.create(): session.clone(origFlowFile);
+//
+//    if (origFlowFile != null)
+//    {
+////      session.remove(origFlowFile);
+//    }
+
 
 
     Connection con = null;
@@ -362,7 +378,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
     {
 
 
-      con = getConnection(context, flowFile);
+      con = getConnection(context, origFlowFile);
 
 
       DatabaseMetaData dbMetaData = con.getMetaData();
@@ -485,7 +501,9 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
           foreignKeysRs.close();
 
-          flowFile =  session.create(flowFile);
+          FlowFile flowFile =   session.create();
+
+          flowFile = session.putAllAttributes(flowFile,attribs);
 
           logger.info("Found {}: {}", new Object[] { tableType, fqn });
 
@@ -646,7 +664,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
               tableName, fqn, tableType, tableRemarks);
 
           session.transfer(flowFile, REL_SUCCESS);
-//          session.commit();
+          session.commit();
 
 
           if (stateMapProperties != null)
@@ -673,14 +691,11 @@ public class PontusGetDBMetadata extends AbstractProcessor
       }
 
 
-      if (!hasResults)
-      {
-        session.transfer(flowFile,REL_SUCCESS);
-      }
     }
     catch (final SQLException | IOException | InitializationException e)
     {
-      FlowFile error =  session.create(flowFile);
+      FlowFile error =  session.create();
+      error = session.putAllAttributes(error,attribs);
       error = session.putAttribute(error, "pg_db_metadata_error", e.toString());
       session.transfer(error, REL_FAILURE);
 //      throw new ProcessException(e);
@@ -696,10 +711,10 @@ public class PontusGetDBMetadata extends AbstractProcessor
       }
       catch (Throwable e)
       {
-        FlowFile error =  session.create(flowFile);
+        FlowFile error =  session.create();
+        error = session.putAllAttributes(error,attribs);
         error = session.putAttribute(error, "pg_db_metadata_error", e.toString());
         session.transfer(error, REL_FAILURE);
-
       }
     }
 
