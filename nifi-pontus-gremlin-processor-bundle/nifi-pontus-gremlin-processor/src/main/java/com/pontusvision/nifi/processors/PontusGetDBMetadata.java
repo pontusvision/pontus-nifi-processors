@@ -317,24 +317,25 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
   @Override public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException
   {
-    final ComponentLog logger           = getLogger();
-    final String       catalog          = context.getProperty(CATALOG).getValue();
-    final String       schemaPattern    = context.getProperty(SCHEMA_PATTERN).getValue();
-    final String       tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).getValue();
+    final FlowFile origFlowFile = session.get();
 
-    final String columnNamePattern = context.getProperty(COLUMN_NAME_PATTERN).getValue();
-    final String[] tableTypes = context.getProperty(TABLE_TYPES).isSet() ?
+    final ComponentLog logger           = getLogger();
+    final String       catalog          = context.getProperty(CATALOG).evaluateAttributeExpressions(origFlowFile).getValue();
+    final String       schemaPattern    = context.getProperty(SCHEMA_PATTERN).evaluateAttributeExpressions(origFlowFile).getValue();
+    final String       tableNamePattern = context.getProperty(TABLE_NAME_PATTERN).evaluateAttributeExpressions(origFlowFile).getValue();
+
+    final String columnNamePattern = context.getProperty(COLUMN_NAME_PATTERN).evaluateAttributeExpressions(origFlowFile).getValue();
+    final String[] tableTypes = context.getProperty(TABLE_TYPES).evaluateAttributeExpressions(origFlowFile).isSet() ?
         context.getProperty(TABLE_TYPES).getValue().split("\\s*,\\s*") :
         null;
-    final boolean includeCount = context.getProperty(INCLUDE_COUNT).asBoolean();
-    this.numRows = context.getProperty(NUM_ROWS).asInteger();
-    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+    final boolean includeCount = context.getProperty(INCLUDE_COUNT).evaluateAttributeExpressions(origFlowFile).asBoolean();
+    this.numRows = context.getProperty(NUM_ROWS).evaluateAttributeExpressions(origFlowFile).asInteger();
+    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).evaluateAttributeExpressions(origFlowFile).asTimePeriod(TimeUnit.MILLISECONDS);
 
     final StateManager  stateManager       = context.getStateManager();
     StateMap            stateMap           = null;
     Map<String, String> stateMapProperties = null;
 
-    final FlowFile origFlowFile = session.get();
 
     if (origFlowFile == null)
     {
@@ -668,6 +669,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
         }
       }
 
+      session.transfer(flowFile,REL_SUCCESS);
     }
     catch (final SQLException | IOException | InitializationException e)
     {

@@ -205,6 +205,11 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
       }
 
     }
+    else
+    {
+      session.transfer(flowFileOrig, REL_SUCCESS);
+
+    }
 
   }
 }
