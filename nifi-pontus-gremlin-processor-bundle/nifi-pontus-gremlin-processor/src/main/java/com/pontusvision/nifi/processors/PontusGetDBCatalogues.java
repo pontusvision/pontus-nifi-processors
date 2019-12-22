@@ -92,13 +92,14 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
 
   }
 
-  public void handleQuery(ResultSet rs, ProcessSession session, FlowFile flowFileOrig) throws SQLException
+  public void handleQuery(ResultSet rs, ProcessSession session, Map<String,String> attribs) throws SQLException
   {
     while (rs.next())
     {
       final String tableCatalog = rs.getString("TABLE_CAT");
 
-      FlowFile flowFile = session.create(flowFileOrig);
+      FlowFile flowFile = session.create();
+      flowFile = session.putAllAttributes(flowFile, attribs);
 
       if (tableCatalog != null)
       {
@@ -123,6 +124,8 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     //    final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
     final FlowFile            flowFileOrig          = session.get();
+    final Map <String, String> attribs = new HashMap<>();
+
     final String              stateMapPropertiesKey = getStateMapPropertiesKey(context, flowFileOrig);
     final StateManager        stateManager          = context.getStateManager();
     final StateMap            stateMap;
@@ -174,19 +177,28 @@ public class PontusGetDBCatalogues extends PontusGetDBMetadata
     }
     if (refreshTable)
     {
+
       try (final Connection con = getConnection(context, flowFileOrig))
       {
+
+
 
         //        DatabaseMetaData dbMetaData = con.getMetaData();
         ResultSet rs = getQuery(con);
 
-        handleQuery(rs, session, flowFileOrig);
+        if (flowFileOrig != null)
+        {
+          attribs.putAll(flowFileOrig.getAttributes());
+          session.transfer(flowFileOrig, REL_ORIGINAL);
+
+        }
+
+        handleQuery(rs, session, attribs);
 
         rs.close();
         stateMapProperties.put(stateMapPropertiesKey, Long.toString(System.currentTimeMillis()));
 
 
-        session.transfer(flowFileOrig, REL_ORIGINAL);
         // Update the timestamps for listed tables
         if (stateMap.getVersion() == -1)
         {

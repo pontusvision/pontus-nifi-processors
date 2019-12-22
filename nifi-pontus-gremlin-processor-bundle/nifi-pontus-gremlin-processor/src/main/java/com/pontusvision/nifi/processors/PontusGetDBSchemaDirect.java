@@ -57,14 +57,6 @@ import static com.pontusvision.nifi.processors.PontusGetDBMetadataDirect.*;
 public class PontusGetDBSchemaDirect extends PontusGetDBCataloguesDirect
 {
 
-  static
-  {
-
-    Set<Relationship> _relationships = new HashSet<>();
-    _relationships.add(REL_SUCCESS);
-    _relationships.add(REL_FAILURE);
-    relationships = Collections.unmodifiableSet(_relationships);
-  }
 
   public ResultSet getQuery(Connection con) throws SQLException
   {
@@ -76,18 +68,21 @@ public class PontusGetDBSchemaDirect extends PontusGetDBCataloguesDirect
   }
 
   @Override
-  public void handleQuery(ResultSet rs, ProcessSession session, FlowFile flowFileOrig) throws SQLException
+  public void handleQuery(ResultSet rs, ProcessSession session, Map<String,String> attribs) throws SQLException
   {
     /*
           final String tableCatalog = rs.getString("TABLE_CAT");
 
      */
+
+
     while (rs.next())
     {
       final String tableCatalog = rs.getString(2 /*"TABLE_CAT"*/);
       final String tableSchema = rs.getString(1 /*"TABLE_SCHEM" */);
 
-      FlowFile flowFile = session.create(flowFileOrig);
+      FlowFile flowFile = session.create();
+      flowFile = session.putAllAttributes(flowFile,attribs);
 
       if (tableSchema != null)
       {
