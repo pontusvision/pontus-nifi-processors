@@ -353,7 +353,7 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
     if (origFlowFile != null)
     {
-      session.remove(origFlowFile);
+//      session.remove(origFlowFile);
     }
 
 
@@ -367,8 +367,11 @@ public class PontusGetDBMetadata extends AbstractProcessor
 
       DatabaseMetaData dbMetaData = con.getMetaData();
       ResultSet        rs         = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
+
+      boolean hasResults = false;
       while (rs.next())
       {
+        hasResults = true;
         final String tableCatalog = rs.getString(1);
         final String tableSchema  = rs.getString(2);
         final String tableName    = rs.getString(3);
@@ -669,7 +672,11 @@ public class PontusGetDBMetadata extends AbstractProcessor
         }
       }
 
-      session.transfer(flowFile,REL_SUCCESS);
+
+      if (!hasResults)
+      {
+        session.transfer(flowFile,REL_SUCCESS);
+      }
     }
     catch (final SQLException | IOException | InitializationException e)
     {
