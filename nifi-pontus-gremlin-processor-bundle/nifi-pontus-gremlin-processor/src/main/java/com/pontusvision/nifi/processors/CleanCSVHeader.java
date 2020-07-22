@@ -21,6 +21,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.Normalizer;
 import java.util.*;
 
 /**
@@ -34,12 +35,12 @@ public class CleanCSVHeader extends AbstractProcessor
   private List<PropertyDescriptor> properties;
 
   private Set<Relationship> relationships;
-  String  findText     = null;
-  String  replaceText  = "_";
-  String  prefixText   = "";
-  Boolean useRegex     = false;
+  String  findText      = null;
+  String  replaceText   = "_";
+  String  prefixText    = "";
+  Boolean useRegex      = false;
   Boolean removeAccents = true;
-  String  csvDelimiter = ",";
+  String  csvDelimiter  = ",";
 
   public static final String MATCH_ATTR = "match";
 
@@ -61,7 +62,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
   final static PropertyDescriptor CSV_REPLACEMENT_PREFIX = new PropertyDescriptor.Builder()
       .name("Replacement Prefix").defaultValue("pg_").required(true)
-      .addValidator(new StandardValidators.StringLengthValidator(0,1000)).build();
+      .addValidator(new StandardValidators.StringLengthValidator(0, 1000)).build();
 
   final static PropertyDescriptor CSV_DELIMITER = new PropertyDescriptor.Builder()
       .name("CSV Delimiter").defaultValue(",").required(true)
@@ -191,8 +192,11 @@ public class CleanCSVHeader extends AbstractProcessor
               {
                 headerSub = StringReplacer.replaceAll(strbuf.toString(), (findText), replaceText);
               }
-              if (removeAccents){
-                headerSub = StringUtils.stripAccents(headerSub);
+              if (removeAccents)
+              {
+                headerSub = Normalizer.normalize(headerSub, Normalizer.Form.NFD);
+                headerSub = headerSub.replaceAll("[^\\p{ASCII}]", "");
+                
               }
 
               if (StringUtils.isNotEmpty(prefixText))
