@@ -195,8 +195,7 @@ public class CleanCSVHeader extends AbstractProcessor
               if (removeAccents)
               {
                 headerSub = Normalizer.normalize(headerSub, Normalizer.Form.NFD);
-                headerSub = headerSub.replaceAll("[^\\p{ASCII}]", "");
-                
+                headerSub = headerSub.replaceAll("\\p{M}", "");
               }
 
               if (StringUtils.isNotEmpty(prefixText))
