@@ -38,6 +38,7 @@ public class CleanCSVHeader extends AbstractProcessor
   String  replaceText  = "_";
   String  prefixText   = "";
   Boolean useRegex     = false;
+  Boolean removeAccents = true;
   String  csvDelimiter = ",";
 
   public static final String MATCH_ATTR = "match";
@@ -52,6 +53,10 @@ public class CleanCSVHeader extends AbstractProcessor
 
   final static PropertyDescriptor USE_REGEX = new PropertyDescriptor.Builder()
       .name("Use Regex").defaultValue("false").required(true)
+      .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
+
+  final static PropertyDescriptor REMOVE_ACCENTS = new PropertyDescriptor.Builder()
+      .name("Remove Accents").defaultValue("true").required(true)
       .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
   final static PropertyDescriptor CSV_REPLACEMENT_PREFIX = new PropertyDescriptor.Builder()
@@ -76,6 +81,7 @@ public class CleanCSVHeader extends AbstractProcessor
     List<PropertyDescriptor> properties = new ArrayList<>();
     properties.add(CSV_FIND_TEXT);
     properties.add(CSV_REPLACE_TEXT);
+    properties.add(REMOVE_ACCENTS);
     properties.add(USE_REGEX);
     properties.add(CSV_REPLACEMENT_PREFIX);
     properties.add(CSV_DELIMITER);
@@ -119,6 +125,10 @@ public class CleanCSVHeader extends AbstractProcessor
     else if (descriptor.equals(USE_REGEX))
     {
       useRegex = Boolean.parseBoolean(newValue);
+    }
+    else if (descriptor.equals(REMOVE_ACCENTS))
+    {
+      removeAccents = Boolean.parseBoolean(newValue);
     }
     else if (descriptor.equals(CSV_DELIMITER))
     {
@@ -180,6 +190,9 @@ public class CleanCSVHeader extends AbstractProcessor
               else
               {
                 headerSub = StringReplacer.replaceAll(strbuf.toString(), (findText), replaceText);
+              }
+              if (removeAccents){
+                headerSub = StringUtils.stripAccents(headerSub);
               }
 
               if (StringUtils.isNotEmpty(prefixText))
