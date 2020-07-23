@@ -215,17 +215,23 @@ public class CleanCSVHeader extends AbstractProcessor
                   }
                   sb.append(prefixText).append(headers[i].trim());
                 }
-                sb.append("\n");
+//                sb.append("\n");
                 headerSub = sb.toString();
 
               }
 
-              final byte[] headerBytes = headerSub.getBytes(Charset.defaultCharset());
+              StringBuffer sb = new StringBuffer();
 
-              out.write(headerBytes);
+              sb.append(headerSub).append("\n");
               while (reader.ready()){
-                out.write(reader.readLine().getBytes(Charset.defaultCharset()));
+
+                sb.append(reader.readLine()).append("\n");
               }
+              final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
+
+
+              out.write(data);
+
               //              out.write("\n".getBytes());
 //              copy(in, headerBytes.length + 1, out);
               //              in.close();
