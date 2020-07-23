@@ -223,8 +223,11 @@ public class CleanCSVHeader extends AbstractProcessor
               final byte[] headerBytes = headerSub.getBytes(Charset.defaultCharset());
 
               out.write(headerBytes);
+              while (reader.ready()){
+                out.write(reader.readLine().getBytes(Charset.defaultCharset()));
+              }
               //              out.write("\n".getBytes());
-              copy(in, headerBytes.length + 1, out);
+//              copy(in, headerBytes.length + 1, out);
               //              in.close();
               //              out.close();
 
