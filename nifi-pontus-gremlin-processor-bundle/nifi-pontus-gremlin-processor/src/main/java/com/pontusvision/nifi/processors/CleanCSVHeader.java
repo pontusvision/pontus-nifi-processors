@@ -18,9 +18,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.text.Normalizer;
 import java.util.*;
 
@@ -58,7 +56,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
   final static PropertyDescriptor REMOVE_ACCENTS = new PropertyDescriptor.Builder()
       .name("Remove Accents").defaultValue("true").required(true)
-      .description("Removes latin accents and replaces with normal vars")
+      .description("Removes latin accents and replaces with normal vars.")
       .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
   final static PropertyDescriptor CSV_REPLACEMENT_PREFIX = new PropertyDescriptor.Builder()
@@ -174,29 +172,34 @@ public class CleanCSVHeader extends AbstractProcessor
               StringBuffer strbuf = new StringBuffer();
 
               byte val = -1;
-              do
-              {
-                val = (byte) in.read();
-                if (val >= 0)
-                {
-                  strbuf.append((char) val);
-                }
-
-              } while (val != '\n' && val != -1);
-
-              String headerSub = null;
+              BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+//              do
+//              {
+//                val = (byte) in.read();
+//                if (val >= 0)
+//                {
+//                  strbuf.append((char) val);
+//                }
+//
+//              } while (val != '\n' && val != -1);
+              if (!reader.ready()){
+                return;
+              }
+              String headerSub = reader.readLine();
               if (useRegex)
               {
-                headerSub = strbuf.toString().replaceAll(findText, replaceText);
+                headerSub = headerSub.replaceAll(findText, replaceText);
               }
               else
               {
-                headerSub = StringReplacer.replaceAll(strbuf.toString(), (findText), replaceText);
+                headerSub = StringReplacer.replaceAll(headerSub, (findText), replaceText);
               }
               if (removeAccents)
               {
-                headerSub = Normalizer.normalize(headerSub, Normalizer.Form.NFD);
+                headerSub = java.text.Normalizer.normalize(headerSub,  java.text.Normalizer.Form.NFD);
+                //string = string.replaceAll("[^\\p{ASCII}]", "");
                 headerSub = headerSub.replaceAll("\\p{M}", "");
+
               }
 
               if (StringUtils.isNotEmpty(prefixText))
