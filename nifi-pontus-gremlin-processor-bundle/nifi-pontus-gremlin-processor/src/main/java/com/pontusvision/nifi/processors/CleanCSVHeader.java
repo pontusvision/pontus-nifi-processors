@@ -19,6 +19,7 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.text.Normalizer;
 import java.util.*;
 
@@ -219,7 +220,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
               }
 
-              final byte[] headerBytes = headerSub.getBytes();
+              final byte[] headerBytes = headerSub.getBytes(Charset.defaultCharset());
 
               out.write(headerBytes);
               //              out.write("\n".getBytes());
