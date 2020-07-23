@@ -58,6 +58,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
   final static PropertyDescriptor REMOVE_ACCENTS = new PropertyDescriptor.Builder()
       .name("Remove Accents").defaultValue("true").required(true)
+      .description("Removes latin accents and replaces with normal vars")
       .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
   final static PropertyDescriptor CSV_REPLACEMENT_PREFIX = new PropertyDescriptor.Builder()
