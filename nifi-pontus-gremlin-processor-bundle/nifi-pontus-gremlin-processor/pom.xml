@@ -32,13 +32,9 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.opencsv</groupId>
-            <artifactId>opencsv</artifactId>
-            <version>4.5</version>
-            <exclusions>
-                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
-                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
-            </exclusions>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.8</version>
         </dependency>
 
         <dependency>
@@ -504,7 +500,13 @@
             <artifactId>jackson-mapper-asl</artifactId>
             <version>${jackson-version}</version>
         </dependency>
-<!--        <dependency>-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.8</version>
+            <scope>compile</scope>
+        </dependency>
+        <!--        <dependency>-->
 <!--            <groupId>pv-gdpr</groupId>-->
 <!--            <artifactId>pontus-gdpr-graph</artifactId>-->
 <!--            <version>${pontus-gdpr-graph.version}</version>-->

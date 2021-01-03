@@ -18,7 +18,8 @@ package com.pontusvision.nifi.processors;
  * limitations under the License.
  */
 
-import com.opencsv.CSVWriter;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -185,12 +186,12 @@ public class PontusGetDBMetadataCSVDirect extends PontusGetDBMetadataDirect
       sb.append("\n");
       StringWriter sw = new StringWriter();
 
-      CSVWriter writer = new CSVWriter(sw);
+      CSVPrinter writer = new CSVPrinter(sw, CSVFormat.DEFAULT);
 
       ilen = rows.size();
       for (int i = 0; i < ilen; i++)
       {
-        writer.writeNext(rows.get(i).toArray(new String[0]));
+        writer.printRecords(rows.get(i));
 //        String rowStr = rows.get(i).toString();
 //
 //
