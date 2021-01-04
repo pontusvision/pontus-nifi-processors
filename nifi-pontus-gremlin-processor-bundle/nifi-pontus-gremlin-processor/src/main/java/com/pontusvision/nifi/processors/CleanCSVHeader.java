@@ -418,70 +418,49 @@ public class CleanCSVHeader extends AbstractProcessor
         FlowFile ffile = session.create();
         ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
 
-        session.write(ffile, new OutputStreamCallback()
-        {
-          @Override public void process(OutputStream out) throws IOException
-          {
+        session.write(ffile, out -> {
+          BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
-            StringBuffer strbuf = new StringBuffer();
-
-            byte val = -1;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-//              do
-//              {
-//                val = (byte) in.read();
-//                if (val >= 0)
-//                {
-//                  strbuf.append((char) val);
-//                }
-//
-//              } while (val != '\n' && val != -1);
-            if (!reader.ready()){
-              return;
-            }
-
-            String headerSub = readHeaders(reader,currCsvFormat);
-
-            in.reset();
-//              reader.reset();
-            for(int i = 0; i < numHeadersToMerge; i ++){
-              reader.readLine();
-            }
-
-
-            StringBuffer sb = new StringBuffer();
-
-            sb.append(headerSub).append(recordSeparator);
-            while (reader.ready()){
-
-              sb.append(reader.readLine()).append(recordSeparator);
-            }
-            final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
-
-
-            out.write(data);
-
-            //              out.write("\n".getBytes());
-//              copy(in, headerBytes.length + 1, out);
-            //              in.close();
-            //              out.close();
-
+          if (!reader.ready()){
+            return;
           }
+
+          String headerSub = readHeaders(reader,currCsvFormat);
+
+          in.reset();
+          for(int i = 0; i < numHeadersToMerge; i ++){
+            reader.readLine();
+          }
+
+
+          StringBuffer sb = new StringBuffer();
+
+          sb.append(headerSub).append(recordSeparator);
+          while (reader.ready()){
+
+            sb.append(reader.readLine()).append(recordSeparator);
+          }
+          final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
+
+          out.write(data);
+
         });
 
         session.transfer(ffile, SUCCESS);
+//        session.remove(flowfile);
 
       }
       catch (Exception ex)
-
       {
         ex.printStackTrace();
         log.error("Failed to read json string.");
         session.transfer(flowfile, FAILURE);
+//        session.remove(flowfile);
+
       }
     });
 
-    session.remove(flowfile);
+//    session.remove(flowfile);
     //    session.commit();
 
   }
