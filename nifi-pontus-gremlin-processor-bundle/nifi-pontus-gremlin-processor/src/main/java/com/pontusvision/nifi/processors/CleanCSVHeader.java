@@ -68,7 +68,7 @@ public class CleanCSVHeader extends AbstractProcessor
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
   final static PropertyDescriptor CSV_REPLACE_TEXT = new PropertyDescriptor.Builder()
-      .name("CSV_REPLACE_TEXT")
+      .name("Text to replace (in the header)")
       .description("Text to replace (in the header)")
       .addValidator(new StandardValidators.StringLengthValidator(0,10000000))
       .defaultValue("_").required(true).build();
@@ -87,20 +87,20 @@ public class CleanCSVHeader extends AbstractProcessor
       .addValidator(new StandardValidators.StringLengthValidator(0, 1000)).build();
 
   final static PropertyDescriptor CSV_DELIMITER = new PropertyDescriptor.Builder()
-      .name("CSV_DELIMITER").description("CSV Delimiter").defaultValue(",").required(false)
+      .name("CSV Delimiter").description("CSV Delimiter").defaultValue(",").required(false)
       .addValidator(new StandardValidators.StringLengthValidator(1,1)).build();
 
   final static PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
-          .name("RECORD_SEPARATOR").defaultValue("\n").required(false)
+          .name("Record Separator").defaultValue("\n").required(false)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
   final static PropertyDescriptor MULTI_LINE_HEADER_COUNT = new PropertyDescriptor.Builder()
-          .name("MULTI_LINE_HEADER_COUNT")
+          .name("Number Column Headers to merge")
           .description("Number Column Headers to merge (using the Multi line header merge strategy")
           .defaultValue("1").required(false)
           .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
   final static PropertyDescriptor MULTI_LINE_HEADER_MERGE_STRATEGY = new PropertyDescriptor.Builder()
-          .name("MULTI_LINE_HEADER_MERGE_STRATEGY")
+          .name("Strategy to merge multiple headers")
           .description("Strategy to merge multiple headers (only applicable if the multiline header count is > 1):\n" +
                   " CONCAT (using =A2&\" \"&A3&\" \"&A4), or" +
                   " REPLACE (if (A2!=\"\",A2,if (A3!=\"\", A3, A4)))")
@@ -176,7 +176,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
 
   final static PropertyDescriptor CSV_PROCESSOR_FORMAT = new PropertyDescriptor.Builder()
-          .name("CSV_PROCESSOR_FORMAT").defaultValue("CUSTOM").description("The CSV format used").required(false).allowableValues(allowedCSVFormatVals)
+          .name("CSV Format").defaultValue("CUSTOM").description("The CSV format used").required(false).allowableValues(allowedCSVFormatVals)
           .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
           .addValidator(CSV_PROCESSOR_FORMAT_VALIDATOR).build();
 
@@ -398,34 +398,35 @@ public class CleanCSVHeader extends AbstractProcessor
     final ComponentLog log      = this.getLogger();
     final FlowFile     flowfile = session.get();
 
+    if (flowfile == null){
+      return;
+    }
+
     final CSVFormat currCsvFormat = this.getCsvFormat(context, flowfile);
 
-    session.read(flowfile, new InputStreamCallback()
-    {
-      @Override public void process(InputStream in) throws IOException
+    session.read(flowfile, in -> {
+      try
       {
-        try
+
+        //          FlowFile ffile = flowfile;
+        //          LineIterator li = IOUtils.lineIterator(in, Charset.defaultCharset().toString());
+        //
+        //          String header = li.nextLine();
+
+        //          ffile = session.write(ffile, out -> out.write(headerBytes));
+
+        FlowFile ffile = session.create();
+        ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
+
+        session.write(ffile, new OutputStreamCallback()
         {
-
-          //          FlowFile ffile = flowfile;
-          //          LineIterator li = IOUtils.lineIterator(in, Charset.defaultCharset().toString());
-          //
-          //          String header = li.nextLine();
-
-          //          ffile = session.write(ffile, out -> out.write(headerBytes));
-
-          FlowFile ffile = session.create();
-          ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
-
-          session.write(ffile, new OutputStreamCallback()
+          @Override public void process(OutputStream out) throws IOException
           {
-            @Override public void process(OutputStream out) throws IOException
-            {
 
-              StringBuffer strbuf = new StringBuffer();
+            StringBuffer strbuf = new StringBuffer();
 
-              byte val = -1;
-              BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            byte val = -1;
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 //              do
 //              {
 //                val = (byte) in.read();
@@ -435,49 +436,48 @@ public class CleanCSVHeader extends AbstractProcessor
 //                }
 //
 //              } while (val != '\n' && val != -1);
-              if (!reader.ready()){
-                return;
-              }
-
-              String headerSub = readHeaders(reader,currCsvFormat);
-
-              in.reset();
-//              reader.reset();
-              for(int i = 0; i < numHeadersToMerge; i ++){
-                reader.readLine();
-              }
-
-
-              StringBuffer sb = new StringBuffer();
-
-              sb.append(headerSub).append(recordSeparator);
-              while (reader.ready()){
-
-                sb.append(reader.readLine()).append(recordSeparator);
-              }
-              final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
-
-
-              out.write(data);
-
-              //              out.write("\n".getBytes());
-//              copy(in, headerBytes.length + 1, out);
-              //              in.close();
-              //              out.close();
-
+            if (!reader.ready()){
+              return;
             }
-          });
 
-          session.transfer(ffile, SUCCESS);
+            String headerSub = readHeaders(reader,currCsvFormat);
 
-        }
-        catch (Exception ex)
+            in.reset();
+//              reader.reset();
+            for(int i = 0; i < numHeadersToMerge; i ++){
+              reader.readLine();
+            }
 
-        {
-          ex.printStackTrace();
-          log.error("Failed to read json string.");
-          session.transfer(flowfile, FAILURE);
-        }
+
+            StringBuffer sb = new StringBuffer();
+
+            sb.append(headerSub).append(recordSeparator);
+            while (reader.ready()){
+
+              sb.append(reader.readLine()).append(recordSeparator);
+            }
+            final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
+
+
+            out.write(data);
+
+            //              out.write("\n".getBytes());
+//              copy(in, headerBytes.length + 1, out);
+            //              in.close();
+            //              out.close();
+
+          }
+        });
+
+        session.transfer(ffile, SUCCESS);
+
+      }
+      catch (Exception ex)
+
+      {
+        ex.printStackTrace();
+        log.error("Failed to read json string.");
+        session.transfer(flowfile, FAILURE);
       }
     });
 
