@@ -49,7 +49,7 @@ public class PontusTinkerPopRemoteClientURLQueryStr extends PontusTinkerPopRemot
     String uriStr = queryStr;
     if (getQueryStrExpressionLanguageScope() != ExpressionLanguageScope.NONE)
     {
-      queryStr = ctx.getProperty(TINKERPOP_QUERY_STR).evaluateAttributeExpressions(attribs).getValue();
+      uriStr = ctx.getProperty(TINKERPOP_QUERY_STR).evaluateAttributeExpressions(attribs).getValue();
     }
 
 
