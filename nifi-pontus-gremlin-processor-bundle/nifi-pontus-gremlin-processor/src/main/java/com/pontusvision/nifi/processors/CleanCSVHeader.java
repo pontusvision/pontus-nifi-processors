@@ -186,9 +186,6 @@ public class CleanCSVHeader extends AbstractProcessor
 
   public static final Relationship FAILURE   = new Relationship.Builder().name("FAILURE")
                                                                          .description("Failure relationship").build();
-  public static final Relationship NEED_MORE = new Relationship.Builder().name("NEED_MORE").description(
-      "Need More relationship, used if the header is being read and we need more data to process the next record")
-                                                                         .build();
 
   @Override public void init(final ProcessorInitializationContext context)
   {
@@ -209,7 +206,6 @@ public class CleanCSVHeader extends AbstractProcessor
     Set<Relationship> relationships = new HashSet<>();
     relationships.add(FAILURE);
     relationships.add(SUCCESS);
-    relationships.add(NEED_MORE);
     this.relationships = Collections.unmodifiableSet(relationships);
   }
 
@@ -396,15 +392,23 @@ public class CleanCSVHeader extends AbstractProcessor
   @Override public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException
   {
     final ComponentLog log      = this.getLogger();
-    final FlowFile     flowfile = session.get();
+    final FlowFile     origFlowfile = session.get();
 
-    if (flowfile == null){
+
+    if (origFlowfile == null){
       return;
     }
+
+    final FlowFile flowfile = session.clone(origFlowfile);
+
+    session.remove(origFlowfile);
 
     final CSVFormat currCsvFormat = this.getCsvFormat(context, flowfile);
 
     session.read(flowfile, in -> {
+      FlowFile ffile = session.create();
+      ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
+
       try
       {
 
@@ -415,8 +419,8 @@ public class CleanCSVHeader extends AbstractProcessor
 
         //          ffile = session.write(ffile, out -> out.write(headerBytes));
 
-        FlowFile ffile = session.create();
-        ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
+//        FlowFile ffile = session.create();
+//        ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
 
         session.write(ffile, out -> {
           BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -454,7 +458,7 @@ public class CleanCSVHeader extends AbstractProcessor
       {
         ex.printStackTrace();
         log.error("Failed to read json string.");
-        session.transfer(flowfile, FAILURE);
+        session.transfer(ffile, FAILURE);
 //        session.remove(flowfile);
 
       }
