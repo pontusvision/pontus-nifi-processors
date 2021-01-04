@@ -22,23 +22,19 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-pontus-gremlin-processor-bundle</artifactId>
-        <version>1.9.2</version>
+        <version>1.12.1</version>
     </parent>
 
     <artifactId>nifi-pontus-gremlin-processor</artifactId>
-    <version>1.9.2</version>
+    <version>1.12.1</version>
     <packaging>jar</packaging>
 
     <dependencies>
 
         <dependency>
-            <groupId>com.opencsv</groupId>
-            <artifactId>opencsv</artifactId>
-            <version>4.5</version>
-            <exclusions>
-                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
-                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
-            </exclusions>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.8</version>
         </dependency>
 
         <dependency>
@@ -113,11 +109,21 @@
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
             <version>${tinkerpop-gremlin.version}</version>
+            <exclusions>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
+                <exclusion><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk15on</artifactId></exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-server</artifactId>
             <version>${tinkerpop-gremlin.version}</version>
+            <exclusions>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
+                <exclusion><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk15on</artifactId></exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -125,6 +131,9 @@
             <artifactId>janusgraph-core</artifactId>
             <version>${janusgraph.version}</version>
             <exclusions>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
+                <exclusion><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk15on</artifactId></exclusion>
                 <exclusion>
                     <groupId>com.codahale.metrics</groupId>
                     <artifactId>metrics-core</artifactId>
@@ -153,6 +162,9 @@
             <version>${janusgraph.version}</version>
             <scope>test</scope>
             <exclusions>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
+                <exclusion><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk15on</artifactId></exclusion>
                 <exclusion>
                     <groupId>commons-io</groupId>
                     <artifactId>commons-io</artifactId>
@@ -471,6 +483,12 @@
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-common</artifactId>
             <version>${keycloak.version}</version>
+            <exclusions>
+              <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></exclusion>
+              <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></exclusion>
+              <exclusion><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk15on</artifactId></exclusion>
+              <exclusion><groupId>org.bouncycastle</groupId><artifactId>bcpkix-jdk15on</artifactId></exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
@@ -482,7 +500,13 @@
             <artifactId>jackson-mapper-asl</artifactId>
             <version>${jackson-version}</version>
         </dependency>
-<!--        <dependency>-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.8</version>
+            <scope>compile</scope>
+        </dependency>
+        <!--        <dependency>-->
 <!--            <groupId>pv-gdpr</groupId>-->
 <!--            <artifactId>pontus-gdpr-graph</artifactId>-->
 <!--            <version>${pontus-gdpr-graph.version}</version>-->

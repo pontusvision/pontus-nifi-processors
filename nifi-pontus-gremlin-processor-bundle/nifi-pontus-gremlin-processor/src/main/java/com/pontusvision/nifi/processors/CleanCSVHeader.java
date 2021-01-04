@@ -6,10 +6,16 @@
 package com.pontusvision.nifi.processors;
 
 import com.pontusvision.utils.StringReplacer;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.*;
@@ -20,36 +26,52 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.text.Normalizer;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Leo Martins
  */
-@Tags({ "JSON", "CSV" }) @CapabilityDescription("Convert CSV to JSON.")
+@Tags({ "Clea", "CSV" , "Format", "Headers"}) @CapabilityDescription("Clean up CSV file headers.")
 
 public class CleanCSVHeader extends AbstractProcessor
 {
+  public enum MULTIVALUE_HEADER_STRATEGY {
+    CONCAT,
+    REPLACE,
+    COL_NUM;
 
+    public final static String[] strValues =
+            EnumSet.allOf(MULTIVALUE_HEADER_STRATEGY.class).stream().map(e -> e.name()).collect(Collectors.toList()).
+                    toArray(new String[0]);
+
+
+    }
   private List<PropertyDescriptor> properties;
 
   private Set<Relationship> relationships;
   String  findText      = null;
   String  replaceText   = "_";
-  String  prefixText    = "";
+  String  prefixText    = "pg_";
   Boolean useRegex      = false;
   Boolean removeAccents = true;
-  String  csvDelimiter  = ",";
+  char  csvDelimiter  = ',';
+  String  recordSeparator  = "\n";
+  Integer numHeadersToMerge  = 1;
+  MULTIVALUE_HEADER_STRATEGY multiHeaderMergeStrategy = MULTIVALUE_HEADER_STRATEGY.REPLACE;
 
   public static final String MATCH_ATTR = "match";
 
   final static PropertyDescriptor CSV_FIND_TEXT = new PropertyDescriptor.Builder()
-      .name("Text to find (in the first line)").defaultValue(".").required(false)
+      .name("Text to find (in the header)").defaultValue(".").required(false)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
   final static PropertyDescriptor CSV_REPLACE_TEXT = new PropertyDescriptor.Builder()
-      .name("Text to replace (in the first line)").defaultValue("_").required(true)
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+      .name("CSV_REPLACE_TEXT")
+      .description("Text to replace (in the header)")
+      .addValidator(new StandardValidators.StringLengthValidator(0,10000000))
+      .defaultValue("_").required(true).build();
 
   final static PropertyDescriptor USE_REGEX = new PropertyDescriptor.Builder()
       .name("Use Regex").defaultValue("false").required(true)
@@ -65,8 +87,99 @@ public class CleanCSVHeader extends AbstractProcessor
       .addValidator(new StandardValidators.StringLengthValidator(0, 1000)).build();
 
   final static PropertyDescriptor CSV_DELIMITER = new PropertyDescriptor.Builder()
-      .name("CSV Delimiter").defaultValue(",").required(true)
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+      .name("CSV_DELIMITER").description("CSV Delimiter").defaultValue(",").required(false)
+      .addValidator(new StandardValidators.StringLengthValidator(1,1)).build();
+
+  final static PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
+          .name("RECORD_SEPARATOR").defaultValue("\n").required(false)
+          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+
+  final static PropertyDescriptor MULTI_LINE_HEADER_COUNT = new PropertyDescriptor.Builder()
+          .name("MULTI_LINE_HEADER_COUNT")
+          .description("Number Column Headers to merge (using the Multi line header merge strategy")
+          .defaultValue("1").required(false)
+          .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+  final static PropertyDescriptor MULTI_LINE_HEADER_MERGE_STRATEGY = new PropertyDescriptor.Builder()
+          .name("MULTI_LINE_HEADER_MERGE_STRATEGY")
+          .description("Strategy to merge multiple headers (only applicable if the multiline header count is > 1):\n" +
+                  " CONCAT (using =A2&\" \"&A3&\" \"&A4), or" +
+                  " REPLACE (if (A2!=\"\",A2,if (A3!=\"\", A3, A4)))")
+          .allowableValues(MULTIVALUE_HEADER_STRATEGY.strValues)
+          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .defaultValue("REPLACE").required(false).build();
+
+
+  final static CSVFormat getCSVFormatFromString (String input){
+    if ("DEFAULT".equalsIgnoreCase(input)|| "CUSTOM".equalsIgnoreCase(input)){
+      return CSVFormat.DEFAULT;
+    }
+    else if ("MONGODB_CSV".equalsIgnoreCase(input)){
+      return CSVFormat.MONGODB_CSV;
+    }
+    else if ("TDF".equalsIgnoreCase(input)){
+      return CSVFormat.TDF;
+    }
+    else if ("POSTGRESQL_TEXT".equalsIgnoreCase(input)){
+      return CSVFormat.POSTGRESQL_TEXT;
+    }
+    else if ("POSTGRESQL_CSV".equalsIgnoreCase(input)){
+      return CSVFormat.POSTGRESQL_CSV;
+    }
+    else if ("ORACLE".equalsIgnoreCase(input)){
+      return CSVFormat.ORACLE;
+    }
+    else if ("RFC4180".equalsIgnoreCase(input)){
+      return CSVFormat.RFC4180;
+    }
+    else if ("MYSQL".equalsIgnoreCase(input)){
+      return CSVFormat.MYSQL;
+    }
+    else if ("INFORMIX_UNLOAD_CSV".equalsIgnoreCase(input)){
+      return CSVFormat.INFORMIX_UNLOAD_CSV;
+    }
+    else if ("INFORMIX_UNLOAD".equalsIgnoreCase(input)){
+      return CSVFormat.INFORMIX_UNLOAD;
+    }
+    else if ("EXCEL".equalsIgnoreCase(input)) {
+      return CSVFormat.EXCEL;
+    }
+    return null;
+
+  }
+
+  final  static String [] allowedCSVFormatVals = {"CUSTOM","DEFAULT","EXCEL","INFORMIX_UNLOAD",
+        "INFORMIX_UNLOAD_CSV","INFORMIX_UNLOAD_CSV","MYSQL","RFC4180","ORACLE","POSTGRESQL_CSV","POSTGRESQL_TEXT",
+        "TDF"};
+
+  final static Validator CSV_PROCESSOR_FORMAT_VALIDATOR = (subject, input, context) -> {
+    ValidationResult.Builder builder = new ValidationResult.Builder();
+    builder.subject(subject).input(input);
+    if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+      return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present")
+              .valid(true).build();
+    } else {
+      try {
+        if (getCSVFormatFromString(input) == null) {
+          return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Invalid CSVFormat name")
+                  .valid(false).build();
+        }
+        builder.valid(true);
+
+      } catch (IllegalArgumentException var6) {
+        builder.valid(false).explanation(var6.getMessage());
+      }
+
+      return builder.build();
+    }
+  };
+
+
+
+  final static PropertyDescriptor CSV_PROCESSOR_FORMAT = new PropertyDescriptor.Builder()
+          .name("CSV_PROCESSOR_FORMAT").defaultValue("CUSTOM").description("The CSV format used").required(false).allowableValues(allowedCSVFormatVals)
+          .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+          .addValidator(CSV_PROCESSOR_FORMAT_VALIDATOR).build();
+
 
   public static final Relationship SUCCESS = new Relationship.Builder().name("SUCCESS")
                                                                        .description("Success relationship").build();
@@ -86,6 +199,10 @@ public class CleanCSVHeader extends AbstractProcessor
     properties.add(USE_REGEX);
     properties.add(CSV_REPLACEMENT_PREFIX);
     properties.add(CSV_DELIMITER);
+    properties.add(RECORD_SEPARATOR);
+    properties.add(MULTI_LINE_HEADER_COUNT);
+    properties.add(MULTI_LINE_HEADER_MERGE_STRATEGY);
+    properties.add(CSV_PROCESSOR_FORMAT);
 
     this.properties = Collections.unmodifiableList(properties);
 
@@ -111,6 +228,19 @@ public class CleanCSVHeader extends AbstractProcessor
 
   }
 
+  public CSVFormat getCsvFormat(final ProcessContext context, final FlowFile flowFile){
+    String input = context.getProperty("CSV_PROCESSOR_FORMAT").evaluateAttributeExpressions(flowFile).getValue();
+    CSVFormat csvFormat = getCSVFormatFromString(input);
+    if ("CUSTOM".equalsIgnoreCase(input)){
+      csvFormat = csvFormat.withDelimiter(this.csvDelimiter)
+               .withRecordSeparator(this.recordSeparator)
+               .withEscape('\\');
+
+    }
+
+    return csvFormat;
+  }
+
   @Override public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue,
                                            final String newValue)
   {
@@ -133,13 +263,133 @@ public class CleanCSVHeader extends AbstractProcessor
     }
     else if (descriptor.equals(CSV_DELIMITER))
     {
-      csvDelimiter = newValue;
+      csvDelimiter = newValue.charAt(0);
     }
-
+    else if (descriptor.equals(RECORD_SEPARATOR))
+    {
+      recordSeparator = newValue;
+    }
     else if (descriptor.equals(CSV_REPLACEMENT_PREFIX))
     {
       prefixText = newValue;
     }
+    else if (descriptor.equals(MULTI_LINE_HEADER_COUNT))
+    {
+      numHeadersToMerge = Integer.parseInt(newValue);
+    }
+    else if (descriptor.equals(MULTI_LINE_HEADER_MERGE_STRATEGY))
+    {
+      multiHeaderMergeStrategy = MULTIVALUE_HEADER_STRATEGY.valueOf(newValue);
+    }
+
+  }
+  public String cleanHeaders (String headerSub){
+    if (useRegex)
+    {
+      headerSub = Pattern.compile(findText, Pattern.DOTALL).matcher(headerSub).replaceAll(replaceText);
+
+     // headerSub = headerSub.replaceAll(findText, replaceText);
+    }
+    else
+    {
+      headerSub = StringReplacer.replaceAll(headerSub, (findText), replaceText);
+    }
+    if (removeAccents)
+    {
+      headerSub = java.text.Normalizer.normalize(headerSub,  java.text.Normalizer.Form.NFD);
+      //string = string.replaceAll("[^\\p{ASCII}]", "");
+      headerSub = headerSub.replaceAll("\\p{M}", "");
+
+    }
+
+    if (StringUtils.isNotEmpty(prefixText))
+    {
+      StringBuffer sb      = new StringBuffer(prefixText);
+      sb.append(headerSub);
+
+      headerSub = sb.toString();
+
+    }
+    return headerSub;
+  }
+  public String readHeaders(BufferedReader reader, CSVFormat format) throws IOException {
+
+    format = format.withAllowMissingColumnNames();
+
+    CSVParser parser = new CSVParser(reader, format);
+
+    Iterator<CSVRecord> recordIterator = parser.iterator();
+
+    List<CSVRecord> headers = new ArrayList<>();
+    int counter = 0;
+
+    int maxEntries = 0;
+
+    while (recordIterator.hasNext() && counter < numHeadersToMerge){
+      CSVRecord record = recordIterator.next();
+      headers.add(record);
+      maxEntries = Math.max(maxEntries,record.size());
+      counter ++;
+    }
+
+    StringBuffer strbuf = new StringBuffer();
+    if (multiHeaderMergeStrategy == MULTIVALUE_HEADER_STRATEGY.CONCAT) {
+      for (int i = 0; i < maxEntries; i++) {
+        if (i != 0){
+          strbuf.append(this.csvDelimiter);
+        }
+
+        for (int j = 0; j < this.numHeadersToMerge; j++) {
+          try {
+            String headerVal = headers.get(j).get(i);
+            if (headerVal.length() > 0) {
+              headerVal = cleanHeaders(headerVal);
+              strbuf.append(headerVal);
+            }
+
+          } catch (Throwable t) {
+            // ignore
+          }
+
+        }
+      }
+    }
+    else if (multiHeaderMergeStrategy == MULTIVALUE_HEADER_STRATEGY.REPLACE){
+      for (int i = 0; i < maxEntries; i++) {
+        if (i != 0){
+          strbuf.append(this.csvDelimiter);
+        }
+        for (int j = this.numHeadersToMerge - 1; j >= 0; j--) {
+          try {
+            String headerVal = headers.get(j).get(i);
+            if (headerVal.length() > 0) {
+              headerVal = cleanHeaders(headerVal);
+              strbuf.append(headerVal);
+              break;
+            }
+
+          } catch (Throwable t) {
+            // ignore
+          }
+
+        }
+      }
+
+    }
+    else if (multiHeaderMergeStrategy == MULTIVALUE_HEADER_STRATEGY.COL_NUM){
+      for (int i = 0; i < maxEntries; i++) {
+        if (i != 0){
+          strbuf.append(this.csvDelimiter);
+        }
+        if (StringUtils.isNotEmpty(prefixText)){
+          strbuf.append(prefixText);
+        }
+        strbuf.append(i+1);
+      }
+
+    }
+
+    return strbuf.toString();
 
   }
 
@@ -147,6 +397,8 @@ public class CleanCSVHeader extends AbstractProcessor
   {
     final ComponentLog log      = this.getLogger();
     final FlowFile     flowfile = session.get();
+
+    final CSVFormat currCsvFormat = this.getCsvFormat(context, flowfile);
 
     session.read(flowfile, new InputStreamCallback()
     {
@@ -186,46 +438,22 @@ public class CleanCSVHeader extends AbstractProcessor
               if (!reader.ready()){
                 return;
               }
-              String headerSub = reader.readLine();
-              if (useRegex)
-              {
-                headerSub = headerSub.replaceAll(findText, replaceText);
-              }
-              else
-              {
-                headerSub = StringReplacer.replaceAll(headerSub, (findText), replaceText);
-              }
-              if (removeAccents)
-              {
-                headerSub = java.text.Normalizer.normalize(headerSub,  java.text.Normalizer.Form.NFD);
-                //string = string.replaceAll("[^\\p{ASCII}]", "");
-                headerSub = headerSub.replaceAll("\\p{M}", "");
 
+              String headerSub = readHeaders(reader,currCsvFormat);
+
+              in.reset();
+//              reader.reset();
+              for(int i = 0; i < numHeadersToMerge; i ++){
+                reader.readLine();
               }
 
-              if (StringUtils.isNotEmpty(prefixText))
-              {
-                String[]     headers = headerSub.split(csvDelimiter);
-                StringBuffer sb      = new StringBuffer();
-                for (int i = 0, ilen = headers.length; i < ilen; i++)
-                {
-                  if (i != 0)
-                  {
-                    sb.append(csvDelimiter);
-                  }
-                  sb.append(prefixText).append(headers[i].trim());
-                }
-//                sb.append("\n");
-                headerSub = sb.toString();
-
-              }
 
               StringBuffer sb = new StringBuffer();
 
-              sb.append(headerSub).append("\n");
+              sb.append(headerSub).append(recordSeparator);
               while (reader.ready()){
 
-                sb.append(reader.readLine()).append("\n");
+                sb.append(reader.readLine()).append(recordSeparator);
               }
               final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
 
