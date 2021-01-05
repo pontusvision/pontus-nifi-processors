@@ -44,8 +44,9 @@ public class TestCleanCSVAccentHeader {
     runner.setProperty(CleanCSVHeader.REMOVE_ACCENTS, "true");
     runner.setProperty(CleanCSVHeader.CSV_FIND_TEXT, "[\\.| ]");
     runner.setProperty(CleanCSVHeader.CSV_REPLACE_TEXT, "");
+    runner.setProperty(CleanCSVHeader.CSV_PROCESSOR_FORMAT, "CUSTOM");
 
-
+    runner.setValidateExpressionUsage(true);
     // Add the content to the runner
     runner.enqueue(header);
 

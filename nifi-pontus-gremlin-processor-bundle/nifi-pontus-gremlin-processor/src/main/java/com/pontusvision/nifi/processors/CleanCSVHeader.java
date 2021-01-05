@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -20,8 +21,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.*;
@@ -61,46 +60,56 @@ public class CleanCSVHeader extends AbstractProcessor
   Integer numHeadersToMerge  = 1;
   MULTIVALUE_HEADER_STRATEGY multiHeaderMergeStrategy = MULTIVALUE_HEADER_STRATEGY.REPLACE;
 
-  public static final String MATCH_ATTR = "match";
+  public static final String CSV_FIND_TEXT_NAME = "Text to find (in the header)";
 
   final static PropertyDescriptor CSV_FIND_TEXT = new PropertyDescriptor.Builder()
-      .name("Text to find (in the header)").defaultValue(".").required(false)
+      .name(CSV_FIND_TEXT_NAME).defaultValue(".").required(false)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
+  public static final String CSV_REPLACE_TEXT_NAME = "Text to replace (in the header)";
+
   final static PropertyDescriptor CSV_REPLACE_TEXT = new PropertyDescriptor.Builder()
-      .name("Text to replace (in the header)")
+      .name(CSV_REPLACE_TEXT_NAME)
       .description("Text to replace (in the header)")
       .addValidator(new StandardValidators.StringLengthValidator(0,10000000))
       .defaultValue("_").required(true).build();
 
+  public static final String USE_REGEX_NAME = "Use Regex";
   final static PropertyDescriptor USE_REGEX = new PropertyDescriptor.Builder()
-      .name("Use Regex").defaultValue("false").required(true)
+      .name(USE_REGEX_NAME).defaultValue("false").required(true)
       .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
+  public static final String REMOVE_ACCENTS_NAME = "Remove Accents";
   final static PropertyDescriptor REMOVE_ACCENTS = new PropertyDescriptor.Builder()
-      .name("Remove Accents").defaultValue("true").required(true)
+      .name(REMOVE_ACCENTS_NAME).defaultValue("true").required(true)
       .description("Removes latin accents and replaces with normal vars.")
       .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
+  public static final String CSV_REPLACEMENT_PREFIX_NAME = "Replacement Col Name Prefix";
   final static PropertyDescriptor CSV_REPLACEMENT_PREFIX = new PropertyDescriptor.Builder()
-      .name("Replacement Prefix").defaultValue("pg_").required(true)
+      .name(CSV_REPLACEMENT_PREFIX_NAME).defaultValue("pg_").required(true)
       .addValidator(new StandardValidators.StringLengthValidator(0, 1000)).build();
 
+  public static final String CSV_DELIMITER_NAME = "CSV Delimiter";
   final static PropertyDescriptor CSV_DELIMITER = new PropertyDescriptor.Builder()
-      .name("CSV Delimiter").description("CSV Delimiter").defaultValue(",").required(false)
+      .name(CSV_DELIMITER_NAME).description("CSV Delimiter").defaultValue(",").required(false)
       .addValidator(new StandardValidators.StringLengthValidator(1,1)).build();
 
+  public static final String RECORD_SEPARATOR_NAME = "Record Separator";
   final static PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
-          .name("Record Separator").defaultValue("\n").required(false)
+          .name(RECORD_SEPARATOR_NAME).defaultValue("\n").required(false)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
+  public static final String MULTI_LINE_HEADER_COUNT_NAME = "Number Column Headers to merge";
   final static PropertyDescriptor MULTI_LINE_HEADER_COUNT = new PropertyDescriptor.Builder()
-          .name("Number Column Headers to merge")
+          .name(MULTI_LINE_HEADER_COUNT_NAME)
           .description("Number Column Headers to merge (using the Multi line header merge strategy")
           .defaultValue("1").required(false)
           .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+
+  final static String MULTI_LINE_HEADER_MERGE_STRATEGY_NAME = "Strategy to merge multiple headers";
   final static PropertyDescriptor MULTI_LINE_HEADER_MERGE_STRATEGY = new PropertyDescriptor.Builder()
-          .name("Strategy to merge multiple headers")
+          .name(MULTI_LINE_HEADER_MERGE_STRATEGY_NAME)
           .description("Strategy to merge multiple headers (only applicable if the multiline header count is > 1):\n" +
                   " CONCAT (using =A2&\" \"&A3&\" \"&A4), or" +
                   " REPLACE (if (A2!=\"\",A2,if (A3!=\"\", A3, A4)))")
@@ -174,11 +183,14 @@ public class CleanCSVHeader extends AbstractProcessor
   };
 
 
-
+  final static String CSV_PROCESSOR_FORMAT_NAME = "CSV Format";
   final static PropertyDescriptor CSV_PROCESSOR_FORMAT = new PropertyDescriptor.Builder()
-          .name("CSV Format").defaultValue("CUSTOM").description("The CSV format used").required(false).allowableValues(allowedCSVFormatVals)
-          .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-          .addValidator(CSV_PROCESSOR_FORMAT_VALIDATOR).build();
+      .name(CSV_PROCESSOR_FORMAT_NAME)
+      .defaultValue("CUSTOM")
+      .description("The CSV format used").required(false)
+      .allowableValues(allowedCSVFormatVals)
+      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+      .addValidator(CSV_PROCESSOR_FORMAT_VALIDATOR).build();
 
 
   public static final Relationship SUCCESS = new Relationship.Builder().name("SUCCESS")
@@ -225,7 +237,8 @@ public class CleanCSVHeader extends AbstractProcessor
   }
 
   public CSVFormat getCsvFormat(final ProcessContext context, final FlowFile flowFile){
-    String input = context.getProperty("CSV_PROCESSOR_FORMAT").evaluateAttributeExpressions(flowFile).getValue();
+    PropertyValue propVAl = context.getProperty(CSV_PROCESSOR_FORMAT_NAME);
+    String input = propVAl.evaluateAttributeExpressions(flowFile).getValue();
     CSVFormat csvFormat = getCSVFormatFromString(input);
     if ("CUSTOM".equalsIgnoreCase(input)){
       csvFormat = csvFormat.withDelimiter(this.csvDelimiter)
@@ -392,20 +405,21 @@ public class CleanCSVHeader extends AbstractProcessor
   @Override public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException
   {
     final ComponentLog log      = this.getLogger();
-    final FlowFile     origFlowfile = session.get();
+    final FlowFile     flowfile = session.get();
 
 
-    if (origFlowfile == null){
+    if (flowfile == null){
       return;
     }
 
-    final FlowFile flowfile = session.clone(origFlowfile);
 
-    session.remove(origFlowfile);
+//    session.remove(flowfile);
 
     final CSVFormat currCsvFormat = this.getCsvFormat(context, flowfile);
+//    ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
 
     session.read(flowfile, in -> {
+//      FlowFile ffile = session.create(flowfile);
       FlowFile ffile = session.create();
       ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
 
@@ -419,14 +433,14 @@ public class CleanCSVHeader extends AbstractProcessor
 
         //          ffile = session.write(ffile, out -> out.write(headerBytes));
 
-//        FlowFile ffile = session.create();
-//        ffile = session.putAllAttributes(ffile, flowfile.getAttributes());
 
         session.write(ffile, out -> {
           BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
           if (!reader.ready()){
-            return;
+//            session.transfer(ffile, FAILURE);
+              throw new EOFException("Reader not ready");
+//            return;
           }
 
           String headerSub = readHeaders(reader,currCsvFormat);
@@ -457,14 +471,13 @@ public class CleanCSVHeader extends AbstractProcessor
       catch (Exception ex)
       {
         ex.printStackTrace();
-        log.error("Failed to read json string.");
+        log.error("Failed to clean csv headers:"+ex.getMessage());
         session.transfer(ffile, FAILURE);
-//        session.remove(flowfile);
 
       }
     });
 
-//    session.remove(flowfile);
+    session.remove(flowfile);
     //    session.commit();
 
   }
