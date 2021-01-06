@@ -97,7 +97,7 @@ public class CleanCSVHeader extends AbstractProcessor
 
   public static final String RECORD_SEPARATOR_NAME = "Record Separator";
   final static PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
-          .name(RECORD_SEPARATOR_NAME).defaultValue("\n").required(false)
+          .name(RECORD_SEPARATOR_NAME).defaultValue("\\n").required(false)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
   public static final String MULTI_LINE_HEADER_COUNT_NAME = "Number Column Headers to merge";
@@ -276,7 +276,9 @@ public class CleanCSVHeader extends AbstractProcessor
     }
     else if (descriptor.equals(RECORD_SEPARATOR))
     {
-      recordSeparator = newValue;
+      recordSeparator = newValue.replace("\\n", "\n")
+          .replace("\\t", "\t")
+          .replace("\\r","\r");
     }
     else if (descriptor.equals(CSV_REPLACEMENT_PREFIX))
     {
