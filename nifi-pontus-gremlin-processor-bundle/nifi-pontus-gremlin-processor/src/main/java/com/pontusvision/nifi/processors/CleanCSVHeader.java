@@ -8,6 +8,7 @@ package com.pontusvision.nifi.processors;
 import com.pontusvision.utils.StringReplacer;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -25,6 +26,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -323,7 +325,7 @@ public class CleanCSVHeader extends AbstractProcessor
     }
     return headerSub;
   }
-  public String readHeaders(BufferedReader reader, CSVFormat format) throws IOException {
+  public String readHeaders(BufferedReader reader, CSVFormat format, OutputStream out) throws IOException {
 
     format = format.withAllowMissingColumnNames();
 
@@ -349,6 +351,7 @@ public class CleanCSVHeader extends AbstractProcessor
         if (i != 0){
           strbuf.append(this.csvDelimiter);
         }
+
 
         for (int j = 0; j < this.numHeadersToMerge; j++) {
           try {
@@ -400,6 +403,21 @@ public class CleanCSVHeader extends AbstractProcessor
 
     }
 
+    strbuf.append(this.recordSeparator);
+    OutputStreamWriter writer = new OutputStreamWriter(out);
+    writer.write(strbuf.toString());
+//    out.write(strbuf.toString().getBytes(StandardCharsets.UTF_8));
+
+    CSVPrinter printer = new CSVPrinter(writer, format);
+    while (recordIterator.hasNext()){
+      CSVRecord record = recordIterator.next();
+      printer.printRecord(record);
+
+    }
+    writer.flush();
+    writer.close();
+
+
     return strbuf.toString();
 
   }
@@ -445,24 +463,26 @@ public class CleanCSVHeader extends AbstractProcessor
 //            return;
           }
 
-          String headerSub = readHeaders(reader,currCsvFormat);
+          readHeaders(reader,currCsvFormat, out);
 
-          in.reset();
-          for(int i = 0; i < numHeadersToMerge; i ++){
-            reader.readLine();
-          }
-
-
-          StringBuffer sb = new StringBuffer();
-
-          sb.append(headerSub).append(recordSeparator);
-          while (reader.ready()){
-
-            sb.append(reader.readLine()).append(recordSeparator);
-          }
-          final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
-
-          out.write(data);
+//          String headerSub = readHeaders(reader,currCsvFormat, out);
+//
+//          in.reset();
+//          for(int i = 0; i < numHeadersToMerge; i ++){
+//            reader.readLine();
+//          }
+//
+//
+//          StringBuffer sb = new StringBuffer();
+//
+//          sb.append(headerSub).append(recordSeparator);
+//          while (reader.ready()){
+//
+//            sb.append(reader.readLine()).append(recordSeparator);
+//          }
+//          final byte[] data = sb.toString().getBytes(Charset.defaultCharset());
+//
+//          out.write(data);
 
         });
 
